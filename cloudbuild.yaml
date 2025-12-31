@@ -1,0 +1,51 @@
+steps:
+  - name: returntocorp/semgrep
+    id: Run-SAST-Scan
+    args:
+      - ci
+    entrypoint: semgrep
+  - name: gcr.io/cloud-builders/docker
+    id: Build
+    args:
+      - build
+      - '-t'
+      - >-
+        $_ARTIFACT_REGISTRY_HOSTNAME/$PROJECT_ID/Istha-twilio-setup/$_SERVICE_NAME:$COMMIT_SHA
+      - .
+      - '-f'
+      - Dockerfile
+  - name: gcr.io/cloud-builders/docker
+    id: Push
+    args:
+      - push
+      - >-
+        $_ARTIFACT_REGISTRY_HOSTNAME/$PROJECT_ID/Istha-twilio-setup/$_SERVICE_NAME:$COMMIT_SHA
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+    id: Deploy
+    args:
+      - run
+      - services
+      - update
+      - $_SERVICE_NAME
+      - '--platform=managed'
+      - >-
+        --image=$_ARTIFACT_REGISTRY_HOSTNAME/$PROJECT_ID/Istha-twilio-setup/$_SERVICE_NAME:$COMMIT_SHA
+      - >-
+        --labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,$_LABELS
+      - '--region=$_DEPLOY_REGION'
+      - '--quiet'
+    entrypoint: gcloud
+images:
+  - >-
+    $_ARTIFACT_REGISTRY_HOSTNAME/$PROJECT_ID/Istha-twilio-setup/$_SERVICE_NAME:$COMMIT_SHA
+options:
+  substitutionOption: ALLOW_LOOSE
+substitutions:
+  _ARTIFACT_REGISTRY_HOSTNAME: us-central1-docker.pkg.dev
+  _PLATFORM: managed
+  _SERVICE_NAME: 'istha-twilio-streaming-server'
+  _DEPLOY_REGION: us-central1
+  _LABELS: ''
+tags:
+  - gcp-cloud-build-deploy-cloud-run
+  - gcp-cloud-build-deploy-cloud-run-managed
