@@ -1,0 +1,29 @@
+{
+  "name": "twilio-dfcx-streaming-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sameeksha209/twilio-dfcx-streaming-server.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/sameeksha209/twilio-dfcx-streaming-server/issues"
+  },
+  "homepage": "https://github.com/sameeksha209/twilio-dfcx-streaming-server#readme",
+  "dependencies": {
+    "@google-cloud/dialogflow-cx": "^5.5.0",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mulaw-js": "^1.0.1",
+    "twilio": "^5.11.1",
+    "ws": "^8.18.3"
+  }
+}
