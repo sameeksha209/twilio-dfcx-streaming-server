@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 const { sessionClient, createSessionPath } = require("../dfcx/client");
 const { mulawToPCM, pcmToMulaw } = require("../utils/audio");
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.STREAM_JWT_SECRET;
 
 module.exports = function (server) {
   const wss = new WebSocket.Server({ server, path: "/streaming" });
