@@ -7,6 +7,12 @@ const JWT_SECRET = process.env.STREAM_JWT_SECRET;
 
 module.exports = function (server) {
   const wss = new WebSocket.Server({ server, path: "/streaming" });
+  
+  wss.addEventListener("open", (event) => {
+  wss.send("Hello Server!");
+})
+wss.addEventListener("error", (event) => { wss.send('error occured')})
+
 
   wss.on("connection", (ws, req) => {
     console.log("Twilio WebSocket connected:", req);
