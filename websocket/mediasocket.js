@@ -8,10 +8,10 @@ const JWT_SECRET = process.env.STREAM_JWT_SECRET;
 module.exports = function (server) {
   const wss = new WebSocket.Server({ server, path: "/streaming" });
   
-  wss.addEventListener("open", (event) => {
+/*   wss.addEventListener("open", (event) => {
   wss.send("Hello Server!");
 })
-wss.addEventListener("error", (event) => { wss.send('error occured')})
+wss.addEventListener("error", (event) => { wss.send('error occured')}) */
 
 
   wss.on("connection", (ws, req) => {
@@ -116,6 +116,10 @@ wss.addEventListener("error", (event) => { wss.send('error occured')})
       } catch (err) {
         console.error("Invalid WS message:", err.message);
       }
+    });
+    
+    ws.on("error", (err) => {
+      console.error("WebSocket error:", err);
     });
 
     ws.on("close", () => {
