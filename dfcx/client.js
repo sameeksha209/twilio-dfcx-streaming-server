@@ -11,7 +11,9 @@ if (!projectId || !location || !agentId) {
 
 // const sessionClient = new SessionsClient();
 const sessionClient = new SessionsClient({
-  apiEndpoint: `'us-central1-dialogflow.googleapis.com' `
+  apiEndpoint: 'us-central1-dialogflow.googleapis.com',
+  // 'dialogflow.googleapis.com',
+  // keyFilename: 'C:/istha-twilio-setup/twilio-streaming-connection-server/twilio-dfcx-streaming-server/credentials.json'
 });
 function createSessionPath() {
   return sessionClient.projectLocationAgentSessionPath(
