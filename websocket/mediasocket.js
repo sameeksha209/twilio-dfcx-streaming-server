@@ -6,28 +6,11 @@ const { mulawToPCM, pcmToMulaw } = require("../utils/audio");
 const JWT_SECRET = process.env.STREAM_JWT_SECRET;
 
 module.exports = function (server) {
-  // // 1. Initialize without the 'server' or 'path' in the config
-  // const wss = new WebSocket.Server({ noServer: true });
 
-  // // 2. Listen for the 'upgrade' event on the raw HTTP server
-  // server.on('upgrade', (request, socket, head) => {
-  //   console.log("🚀 UPGRADE ATTEMPT DETECTED!");
-  // console.log("Headers:", request.headers);
-  //   const pathname = new URL(request.url, `http://${request.headers.host}`).pathname;
-
-  //   if (pathname === '/streaming') {
-  //     wss.handleUpgrade(request, socket, head, (ws) => {
-  //       wss.emit('connection', ws, request);
-  //     });
-  //   } else {
-  //     // If it's not the /streaming path, destroy the socket (standard 404)
-  //     socket.destroy();
-  //   }});
   const wss = new WebSocket.Server({
     server,
     path: "/streaming"
   });
- console.log('wss details',wss)
   wss.on("connection", (ws) => {
     console.log("✅ Twilio WebSocket connected");
 
@@ -98,19 +81,21 @@ module.exports = function (server) {
             });
 
           // Initial config (MANDATORY)
-          dfcxStream.write({
-            session: sessionPath,
-            queryInput: {
-              audioConfig: {
-                audioEncoding: "AUDIO_ENCODING_MULAW",
-                sampleRateHertz: 8000
-              }
-            },
-            outputAudioConfig: {
-              audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW",
-              sampleRateHertz: 8000
-            }
-          });
+         dfcxStream.write({
+  session: sessionPath,
+  query_input: {
+    language_code: "en-US",
+    audio: {
+      audioEncoding: "AUDIO_ENCODING_LINEAR_16",
+      sampleRateHertz: 8000
+    }
+  }
+});
+          //   outputAudioConfig: {
+          //     audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW",
+          //     sampleRateHertz: 8000
+          //   }
+          // });
 
           return;
         } catch (err) {
@@ -128,7 +113,7 @@ module.exports = function (server) {
       /* ---------------- MEDIA EVENT ---------------- */
       if (json.event === "media") {
         if (!dfcxStream) return;
-
+          console.log('json payload',json.media.payload)
         const mulawBytes = Buffer.from(json.media.payload, "base64");
         const pcm = mulawToPCM(mulawBytes);
 
