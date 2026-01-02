@@ -23,7 +23,7 @@ app.use((req, res, next) => {
 
 // Start server
 const port = process.env.PORT || 8080;
-app.listen(port, "0.0.0.0", () => {
+const server = app.listen(port, "0.0.0.0", () => {
   console.log(`Server listening on port ${port}`);
 });
 mediasocket(server);
