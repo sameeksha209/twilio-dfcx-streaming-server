@@ -10,7 +10,7 @@ module.exports = function (server) {
     server,
     path: "/streaming"
   });
-
+ console.log('wss details',wss)
   wss.on("connection", (ws) => {
     console.log("✅ Twilio WebSocket connected");
 
