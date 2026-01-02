@@ -19,10 +19,11 @@ app.use((req, res, next) => {
 });
 
 // Routes
-app.use("/", mediasocket);
+// app.use("/", mediasocket);
 
 // Start server
 const port = process.env.PORT || 8080;
 app.listen(port, "0.0.0.0", () => {
   console.log(`Server listening on port ${port}`);
 });
+mediasocket(server);
