@@ -6,10 +6,25 @@ const { mulawToPCM, pcmToMulaw } = require("../utils/audio");
 const JWT_SECRET = process.env.STREAM_JWT_SECRET;
 
 module.exports = function (server) {
-  const wss = new WebSocket.Server({
-    server,
-    path: "/streaming"
-  });
+  // 1. Initialize without the 'server' or 'path' in the config
+  const wss = new WebSocket.Server({ noServer: true });
+
+  // 2. Listen for the 'upgrade' event on the raw HTTP server
+  server.on('upgrade', (request, socket, head) => {
+    const pathname = new URL(request.url, `http://${request.headers.host}`).pathname;
+
+    if (pathname === '/streaming') {
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request);
+      });
+    } else {
+      // If it's not the /streaming path, destroy the socket (standard 404)
+      socket.destroy();
+    }});
+  // const wss = new WebSocket.Server({
+  //   server,
+  //   path: "/streaming"
+  // });
  console.log('wss details',wss)
   wss.on("connection", (ws) => {
     console.log("✅ Twilio WebSocket connected");
