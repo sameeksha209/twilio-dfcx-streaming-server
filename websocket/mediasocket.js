@@ -60,6 +60,7 @@ module.exports = function (server) {
             .streamingDetectIntent()
             .on("error", (err) => console.error("❌ DFCX Error:", err))
             .on("data", (data) => {
+              console.log('data',data)
               if (data.outputAudio) {
                 const mulaw = pcmToMulaw(data.outputAudio);
 
@@ -71,12 +72,12 @@ module.exports = function (server) {
                 }));
               }
 
-              const texts =
-                data.detectIntentResponse?.textResponses?.textResponses;
+              // const texts =
+              //   data.detectIntentResponse?.textResponses?.textResponses;
 
-              if (texts?.length) {
-                console.log("🤖 DFCX:", texts.map(t => t.text).join(" | "));
-              }
+              // if (texts?.length) {
+              //   console.log("🤖 DFCX:", texts.map(t => t.text).join(" | "));
+              // }
             });
 
           // Initial config (MANDATORY)

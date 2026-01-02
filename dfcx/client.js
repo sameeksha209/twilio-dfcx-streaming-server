@@ -9,8 +9,10 @@ if (!projectId || !location || !agentId) {
   process.exit(1);
 }
 
-const sessionClient = new SessionsClient();
-
+// const sessionClient = new SessionsClient();
+const sessionClient = new SessionsClient({
+  apiEndpoint: `'us-central1-dialogflow.googleapis.com' `
+});
 function createSessionPath() {
   return sessionClient.projectLocationAgentSessionPath(
     projectId,
