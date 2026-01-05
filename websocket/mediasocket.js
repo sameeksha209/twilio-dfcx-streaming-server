@@ -132,19 +132,28 @@ module.exports = function (server) {
     return;
   }
    console.log('in media event',json)
-  const mulawBytes = Buffer.from(json.media.payload, "base64");
-  const pcm = mulawToPCM(mulawBytes);
-console.log('pcm',pcm)
+    const mulawBytes = Buffer.from(json.media.payload, "base64");
+
+  const pcmBuffer = mulawToPCM(mulawBytes);
+
+  // 🔍 DEBUG (important)
+  console.log(
+    "PCM type:", Buffer.isBuffer(pcmBuffer),
+    "length:", pcmBuffer?.length
+  );
+
+  if (!pcmBuffer || !pcmBuffer.length) return;
+
+  // ✅ DO NOT wrap again
   dfcxStream.write({
     queryInput: {
       audio: {
-        audio: Buffer.from(pcm.buffer)
+        audio: pcmBuffer
       }
     }
   });
   return;
 }
-
 
       /* ---------------- STOP ---------------- */
       if (json.event === "stop") {
