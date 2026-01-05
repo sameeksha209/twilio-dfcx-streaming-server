@@ -126,12 +126,12 @@ module.exports = function (server) {
 
       /* ---------------- MEDIA ---------------- */
     if (json.event === "media") {
-      console.log('inside media event',json)
+      // console.log('inside media event',json)
   if (!json.media || !json.media.payload) {
     console.warn("⚠️ Media event without payload, skipping");
     return;
   }
-   console.log('in media event',json)
+  //  console.log('in media event',json)
     const mulawBytes = Buffer.from(json.media.payload, "base64");
 
   const pcmBuffer = mulawToPCM(mulawBytes);
