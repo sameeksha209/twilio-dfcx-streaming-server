@@ -67,6 +67,7 @@ module.exports = function (server) {
               console.error("❌ DFCX stream error:", err);
             })
             .on("data", (data) => {
+              console.log('inside data part,', data)
               /* ---- Send synthesized audio back to Twilio ---- */
               if (data.outputAudio?.length) {
                 const mulaw = pcmToMulaw(data.outputAudio);
@@ -119,20 +120,21 @@ module.exports = function (server) {
       }
 
       /* -------- BLOCK UNTIL AUTH -------- */
-      if (!isAuthenticated || !dfcxStream || !isConfigSent) {
-        return;
-      }
+      // if (!isAuthenticated || !dfcxStream || !isConfigSent) {
+      //   return;
+      // }
 
       /* ---------------- MEDIA ---------------- */
     if (json.event === "media") {
+      console.log('inside media event',json)
   if (!json.media || !json.media.payload) {
     console.warn("⚠️ Media event without payload, skipping");
     return;
   }
-
+   console.log('in media event',json)
   const mulawBytes = Buffer.from(json.media.payload, "base64");
   const pcm = mulawToPCM(mulawBytes);
-
+console.log('pcm',pcm)
   dfcxStream.write({
     queryInput: {
       audio: {
