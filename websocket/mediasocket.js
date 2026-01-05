@@ -124,19 +124,25 @@ module.exports = function (server) {
       }
 
       /* ---------------- MEDIA ---------------- */
-      if (json.event === "media") {
-        const mulawBytes = Buffer.from(json.media.payload, "base64");
-        const pcm = mulawToPCM(mulawBytes);
+    if (json.event === "media") {
+  if (!json.media || !json.media.payload) {
+    console.warn("⚠️ Media event without payload, skipping");
+    return;
+  }
 
-        dfcxStream.write({
-          queryInput: {
-            audio: {
-              audio: Buffer.from(pcm.buffer)
-            }
-          }
-        });
-        return;
+  const mulawBytes = Buffer.from(json.media.payload, "base64");
+  const pcm = mulawToPCM(mulawBytes);
+
+  dfcxStream.write({
+    queryInput: {
+      audio: {
+        audio: Buffer.from(pcm.buffer)
       }
+    }
+  });
+  return;
+}
+
 
       /* ---------------- STOP ---------------- */
       if (json.event === "stop") {
