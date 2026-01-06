@@ -102,7 +102,7 @@ module.exports = function (server) {
                   sampleRateHertz: 8000
                 }
               },
-              languageCode: "en-US"
+              languageCode: "en"
             },
             outputAudioConfig: {
               audioEncoding: "OUTPUT_AUDIO_ENCODING_LINEAR_16",
