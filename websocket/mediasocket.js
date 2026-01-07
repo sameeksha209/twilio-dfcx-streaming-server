@@ -245,14 +245,15 @@ module.exports = function (server) {
           queryInput: {
             audio: {
               config: {
-                audioEncoding: "LINEAR16",
+                audioEncoding: "AUDIO_ENCODING_LINEAR_16",
+                singleUtterance: false,
                 sampleRateHertz: 8000
               }
             },
             languageCode: "en-US"
           },
           outputAudioConfig: {
-            audioEncoding: "LINEAR16",
+            audioEncoding: "OUTPUT_AUDIO_ENCODING_LINEAR_16",
             sampleRateHertz: 8000,
             voice: {
               name: "en-US-Standard-C"
