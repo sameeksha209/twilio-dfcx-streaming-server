@@ -199,7 +199,7 @@ module.exports = function (server) {
       if (json.event === "start") {
         callSid = json.start?.callSid;
         streamSid = json.streamSid; // Required to send audio back to Twilio
-        
+
         console.log(`🚀 Session Started | CallSid: ${callSid}`);
 
         const sessionPath = createSessionPath(callSid);
@@ -213,22 +213,22 @@ module.exports = function (server) {
         });
 
         dfcxStream.on("data", (data) => {
-          console.log(data,'initial data')
+          console.log(data, 'initial data')
           // Log Transcript (Interim/Final)
           if (data.recognitionResult) {
             console.log(`🎤 [${callSid}] Heard: "${data.recognitionResult.transcript}" (Final: ${data.recognitionResult.isFinal})`);
           }
-           console.log('data output Audio',data.outputAudio, data.outputAudio?.length)
+          console.log('data output Audio', data.outputAudio, data.outputAudio?.length)
           // Send Audio Response back to Twilio
           if (data.outputAudio?.length) {
             console.log('inside sending event triggeri')
-    ws.send(JSON.stringify({
-      event: "media",
-      streamSid: streamSid,
-      media: { payload: pcmToMulaw(data.outputAudio).toString("base64") }
-    }));
-    console.log('event send')
-  }
+            ws.send(JSON.stringify({
+              event: "media",
+              streamSid: streamSid,
+              media: { payload: pcmToMulaw(data.outputAudio).toString("base64") }
+            }));
+            console.log('event send')
+          }
 
           // Log Agent Text Response
           const responses = data.detectIntentResponse?.queryResult?.responseMessages;
@@ -241,49 +241,69 @@ module.exports = function (server) {
 
         // C. Send initial Configuration
         dfcxStream.write({
-            session: sessionPath,
-            queryInput: {
-              audio: {
-                config: {
-                  audioEncoding: "AUDIO_ENCODING_LINEAR_16",
-                  sampleRateHertz: 8000
-                }
-              },
-              languageCode: "en"
+          session: sessionPath,
+          queryInput: {
+            audio: {
+              config: {
+                audioEncoding: "LINEAR16",
+                sampleRateHertz: 8000
+              }
             },
-            outputAudioConfig: {
-              audioEncoding: "OUTPUT_AUDIO_ENCODING_LINEAR_16",
-              sampleRateHertz: 8000
+            languageCode: "en-US"
+          },
+          outputAudioConfig: {
+            audioEncoding: "LINEAR16",
+            sampleRateHertz: 8000,
+            voice: {
+              name: "en-US-Standard-C"
             }
-          });
+          }
+        });
+        console.log('stream written done')
+        // dfcxStream.write({
+        //     session: sessionPath,
+        //     queryInput: {
+        //       audio: {
+        //         config: {
+        //           audioEncoding: "AUDIO_ENCODING_LINEAR_16",
+        //           sampleRateHertz: 8000
+        //         }
+        //       },
+        //       languageCode: "en"
+        //     },
+        //     outputAudioConfig: {
+        //       audioEncoding: "OUTPUT_AUDIO_ENCODING_LINEAR_16",
+        //       sampleRateHertz: 8000
+        //     }
+        //   });
 
-          isConfigSent = true;
-          return;
-        }
+        isConfigSent = true;
+        return;
+      }
       /* ---------------- 2. MEDIA EVENT ---------------- */
       if (json.event === "media") {
-  if (!json.media || !json.media.payload) {
-    console.warn("⚠️ Media event without payload, skipping");
-    return;
-  }
-    const mulawBytes = Buffer.from(json.media.payload, "base64");
+        if (!json.media || !json.media.payload) {
+          console.warn("⚠️ Media event without payload, skipping");
+          return;
+        }
+        const mulawBytes = Buffer.from(json.media.payload, "base64");
 
-  const pcmBuffer = mulawToPCM(mulawBytes);
+        const pcmBuffer = mulawToPCM(mulawBytes);
 
 
-  if (!pcmBuffer || !pcmBuffer.length) return;
+        if (!pcmBuffer || !pcmBuffer.length) return;
 
-  // ✅ DO NOT wrap again
-  dfcxStream.write({
-    queryInput: {
-      audio: {
-        audio: pcmBuffer
+        // ✅ DO NOT wrap again
+        dfcxStream.write({
+          queryInput: {
+            audio: {
+              audio: pcmBuffer
+            }
+          }
+        });
+        console.log('stream written to dfcx')
+        return;
       }
-    }
-  });
-  console.log('stream written to dfcx')
-  return;
-}
 
       /* ---------------- 3. STOP EVENT ---------------- */
       if (json.event === "stop") {
