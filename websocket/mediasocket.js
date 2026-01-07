@@ -218,14 +218,16 @@ module.exports = function (server) {
           if (data.recognitionResult) {
             console.log(`🎤 [${callSid}] Heard: "${data.recognitionResult.transcript}" (Final: ${data.recognitionResult.isFinal})`);
           }
-
+           console.log('data output Audio',data.outputAudio, data.outputAudio?.length)
           // Send Audio Response back to Twilio
           if (data.outputAudio?.length) {
+            console.log('inside sending event triggeri')
     ws.send(JSON.stringify({
       event: "media",
       streamSid: streamSid,
       media: { payload: pcmToMulaw(data.outputAudio).toString("base64") }
     }));
+    console.log('event send')
   }
 
           // Log Agent Text Response
@@ -279,6 +281,7 @@ module.exports = function (server) {
       }
     }
   });
+  console.log('stream written to dfcx')
   return;
 }
 
