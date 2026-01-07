@@ -1,16 +1,46 @@
+// const mulaw = require("mulaw-js");
+
+// function mulawToPCM(mulawBytes) {
+//   return mulaw.decode(mulawBytes);
+// }
+
+// function pcmToMulaw(pcmBuffer) {
+//   const pcm = new Int16Array(
+//     pcmBuffer.buffer,
+//     pcmBuffer.byteOffset,
+//     pcmBuffer.length / 2
+//   );
+
+//   return Buffer.from(mulaw.encode(pcm));
+// }
+
+// module.exports = { mulawToPCM, pcmToMulaw };
+
 const mulaw = require("mulaw-js");
 
 function mulawToPCM(mulawBytes) {
-  return mulaw.decode(mulawBytes);
+  // 1. Decode Mu-law to Int16Array
+  const decodedInt16 = mulaw.decode(mulawBytes);
+  
+  // 2. Create a fresh buffer (2 bytes per sample)
+  const pcmBuffer = Buffer.alloc(decodedInt16.length * 2);
+
+  // 3. EXPLICITLY write as Little-Endian. 
+  // If you don't do this, it might default to Big-Endian, which sounds like static to Google.
+  for (let i = 0; i < decodedInt16.length; i++) {
+    pcmBuffer.writeInt16LE(decodedInt16[i], i * 2);
+  }
+  
+  return pcmBuffer;
 }
 
 function pcmToMulaw(pcmBuffer) {
+  // Convert back to Int16Array for encoding
   const pcm = new Int16Array(
     pcmBuffer.buffer,
     pcmBuffer.byteOffset,
     pcmBuffer.length / 2
   );
-
   return Buffer.from(mulaw.encode(pcm));
 }
 

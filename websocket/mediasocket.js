@@ -221,13 +221,12 @@ module.exports = function (server) {
 
           // Send Audio Response back to Twilio
           if (data.outputAudio?.length) {
-            const mulawPayload = pcmToMulaw(data.outputAudio);
-            ws.send(JSON.stringify({
-              event: "media",
-              streamSid: streamSid,
-              media: { payload: Buffer.from(mulawPayload).toString("base64") }
-            }));
-          }
+    ws.send(JSON.stringify({
+      event: "media",
+      streamSid: streamSid,
+      media: { payload: pcmToMulaw(data.outputAudio).toString("base64") }
+    }));
+  }
 
           // Log Agent Text Response
           const responses = data.detectIntentResponse?.queryResult?.responseMessages;
