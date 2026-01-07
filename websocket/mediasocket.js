@@ -261,18 +261,27 @@ module.exports = function (server) {
 
       /* ---------------- 2. MEDIA EVENT ---------------- */
       if (json.event === "media") {
-        if (!dfcxStream) return;
+  if (!json.media || !json.media.payload) {
+    console.warn("⚠️ Media event without payload, skipping");
+    return;
+  }
+    const mulawBytes = Buffer.from(json.media.payload, "base64");
 
-        const pcmBuffer = mulawToPCM(Buffer.from(json.media.payload, "base64"));
+  const pcmBuffer = mulawToPCM(mulawBytes);
 
-        if (pcmBuffer && pcmBuffer.length > 0) {
-          // Correct field: inputAudio (Raw bytes)
-          dfcxStream.write({
-            inputAudio: pcmBuffer
-          });
-        }
-        return;
+
+  if (!pcmBuffer || !pcmBuffer.length) return;
+
+  // ✅ DO NOT wrap again
+  dfcxStream.write({
+    queryInput: {
+      audio: {
+        audio: pcmBuffer
       }
+    }
+  });
+  return;
+}
 
       /* ---------------- 3. STOP EVENT ---------------- */
       if (json.event === "stop") {
