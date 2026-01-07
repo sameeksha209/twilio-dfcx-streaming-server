@@ -15,11 +15,11 @@ const sessionClient = new SessionsClient({
   // 'dialogflow.googleapis.com',
   // keyFilename: 'C:/istha-twilio-setup/twilio-streaming-connection-server/twilio-dfcx-streaming-server/credentials.json'
 });
-function createSessionPath() {
+function createSessionPath(callSid) {
   return sessionClient.projectLocationAgentSessionPath(
     projectId,
     location,
-    agentId,
+    agentId,callSid,
     "twilio-relay-session-" + Date.now()
   );
 }
