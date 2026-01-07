@@ -184,6 +184,7 @@ module.exports = function (server) {
     let callSid = null;
     let streamSid = null;
     let dfcxStream = null;
+    let isConfigSent = false;
 
     ws.on("message", (msg) => {
       let json;
@@ -239,26 +240,25 @@ module.exports = function (server) {
 
         // C. Send initial Configuration
         dfcxStream.write({
-          session: sessionPath,
-          queryInput: {
-            audio: {
-              config: {
-                audioEncoding: "AUDIO_ENCODING_LINEAR_16",
-                sampleRateHertz: 8000,
-                model: "phone_call", // Optimized for Twilio's quality
-                singleUtterance: false
-              }
+            session: sessionPath,
+            queryInput: {
+              audio: {
+                config: {
+                  audioEncoding: "AUDIO_ENCODING_LINEAR_16",
+                  sampleRateHertz: 8000
+                }
+              },
+              languageCode: "en"
             },
-            languageCode: "en"
-          },
-          outputAudioConfig: {
-            audioEncoding: "OUTPUT_AUDIO_ENCODING_LINEAR_16",
-            sampleRateHertz: 8000
-          }
-        });
-        return;
-      }
+            outputAudioConfig: {
+              audioEncoding: "OUTPUT_AUDIO_ENCODING_LINEAR_16",
+              sampleRateHertz: 8000
+            }
+          });
 
+          isConfigSent = true;
+          return;
+        }
       /* ---------------- 2. MEDIA EVENT ---------------- */
       if (json.event === "media") {
   if (!json.media || !json.media.payload) {
