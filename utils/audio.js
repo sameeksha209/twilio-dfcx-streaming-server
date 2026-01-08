@@ -35,13 +35,18 @@ function mulawToPCM(mulawBytes) {
 }
 
 function pcmToMulaw(pcmBuffer) {
+const pcmBytes = pcmBuffer.slice(44);
+const aligned = new Uint8Array(pcmBytes).slice(); // hard copy
+
+const pcm16 = new Int16Array(aligned.buffer);
+
   // Convert back to Int16Array for encoding
-  const pcm = new Int16Array(
-    pcmBuffer.buffer,
-    pcmBuffer.byteOffset,
-    pcmBuffer.length / 2
-  );
-  return Buffer.from(mulaw.encode(pcm));
+  // const pcm = new Int16Array(
+  //   pcmBuffer.buffer,
+  //   pcmBuffer.byteOffset,
+  //   pcmBuffer.length / 2
+  // );
+  return Buffer.from(mulaw.encode(pcm16));
 }
 
 module.exports = { mulawToPCM, pcmToMulaw };
