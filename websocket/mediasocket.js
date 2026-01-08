@@ -225,7 +225,7 @@ module.exports = function (server) {
             ws.send(JSON.stringify({
               event: "media",
               streamSid: streamSid,
-              media: { payload: pcmToMulaw(data.outputAudio).toString("base64") }
+              media: { payload: pcmToMulaw(data.detectIntentResponse.outputAudio).toString("base64") }
             }));
             console.log('event send')
           }
