@@ -307,7 +307,7 @@ module.exports = function (server) {
           },
         });
 
-        console.log("✅ User audio sent to Dialogflow");
+        // console.log("✅ User audio sent to Dialogflow");
         return;
       }
 
