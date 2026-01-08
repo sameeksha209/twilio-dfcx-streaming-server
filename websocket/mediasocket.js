@@ -218,9 +218,9 @@ module.exports = function (server) {
           if (data.recognitionResult) {
             console.log(`🎤 [${callSid}] Heard: "${data.recognitionResult.transcript}" (Final: ${data.recognitionResult.isFinal})`);
           }
-          console.log('data output Audio', data.outputAudio, data.outputAudio?.length)
+          console.log('data output Audio', data.detectIntentResponse?.outputAudio, data.detectIntentResponse?.outputAudio?.length)
           // Send Audio Response back to Twilio
-          if (data.outputAudio?.length) {
+          if (data.detectIntentResponse?.outputAudio?.length) {
             console.log('inside sending event triggeri')
             ws.send(JSON.stringify({
               event: "media",
