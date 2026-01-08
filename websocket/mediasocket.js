@@ -43,7 +43,7 @@ module.exports = function (server) {
           console.error(`❌ DFCX [${callSid}] Error:`, err.message);
         });
 
-        dfcxStream.on("data", (data) => {
+        dfcxStream.on("data", async (data) => {
           console.log(data, 'initial data')
           // Log Transcript (Interim/Final)
           if (data.recognitionResult) {
@@ -58,14 +58,21 @@ module.exports = function (server) {
 
             // Convert to μ-law, 8k
             wav.toMuLaw();
-
+            const FRAME_SIZE = 160
             // Get raw μ-law bytes (no header)
             const mulaw = Buffer.from(wav.getSamples());
-            ws.send(JSON.stringify({
-              event: "media",
-              streamSid: streamSid,
-              media: { payload: mulaw.toString("base64") }
-            }));
+            for (let i = 0; i < mulaw.length; i += FRAME_SIZE) {
+              const chunk = mulaw.slice(i, i + FRAME_SIZE);
+
+              ws.send(JSON.stringify({
+                event: "media",
+                streamSid,
+                media: { payload: chunk.toString("base64") }
+              }));
+
+              // Pace the audio: 20ms per chunk
+              await new Promise(r => setTimeout(r, 20));
+            }
             console.log('event send')
           }
 
