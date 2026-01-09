@@ -202,15 +202,7 @@ let packetCount = 0;
         });
 
         dfcxStream.on("data", (data) => {
-          dfcxStream.write({
-        queryInput: {
-            event: {
-                event: json.event 
-            }
-        }
-      });
-      console.log('event send',json.event)
-          // 1️⃣ Log transcript
+                    // 1️⃣ Log transcript
           if (data.recognitionResult) {
             console.log(
               `🎤 [${callSid}] Heard: "${data.recognitionResult.transcript}" (Final: ${data.recognitionResult.isFinal})`
@@ -273,14 +265,14 @@ let packetCount = 0;
         });
 
         console.log("✅ Dialogflow stream initialized");
-        // dfcxStream.write({
-        // queryInput: {
-        //     event: {
-        //         event: json.event 
-        //     }
-        // }
-    // });
-    //    console.log("✅ Config and Event sent to DFCX", json.event);
+        dfcxStream.write({
+        queryInput: {
+            event: {
+                event: 'media' 
+            }
+        }
+    });
+       console.log("✅ Config and Event sent to DFCX", json.event);
         return;
       }
 
