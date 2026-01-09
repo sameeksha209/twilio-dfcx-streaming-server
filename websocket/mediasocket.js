@@ -184,6 +184,8 @@ module.exports = function (server) {
         return;
       }
 
+      console.log('inputs events ---', json.event)
+
       /* ---------------- 1. START EVENT ---------------- */
       if (json.event === "start") {
         callSid = json.start?.callSid;
