@@ -34,6 +34,7 @@ module.exports = function (server) {
         // --- DFCX Listener: Google -> Relay -> Twilio ---
         dfcxStream.on("data", (data) => {
           // 1. Log Transcripts (if any)
+          console.log('data',data)
           if (data.recognitionResult) {
             console.log(`🎤 Heard: "${data.recognitionResult.transcript}"`);
           }
