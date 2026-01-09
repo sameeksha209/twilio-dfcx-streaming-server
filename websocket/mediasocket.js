@@ -231,6 +231,7 @@ module.exports = function (server) {
               );
             }
           }
+          console.log('sending event back to twilio');
 
           // 3️⃣ Log agent text responses
           const responses = data.detectIntentResponse?.queryResult?.responseMessages;
