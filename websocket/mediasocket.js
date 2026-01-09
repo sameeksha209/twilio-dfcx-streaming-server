@@ -258,7 +258,7 @@ let packetCount = 0;
             languageCode: "en-US",
           },
           outputAudioConfig: {
-            audioEncoding: "OUTPUT_AUDIO_ENCODING_LINEAR_16",
+            audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW",
             sampleRateHertz: 8000,
             voice: { name: "en-US-Standard-C" },
           },
