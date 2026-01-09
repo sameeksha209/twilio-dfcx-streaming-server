@@ -265,6 +265,16 @@ let packetCount = 0;
         });
 
         console.log("✅ Dialogflow stream initialized");
+        dfcxStream.write({
+        queryInput: {
+            event: {
+                event: json.event 
+            }
+        }
+    });
+
+    console.log("✅ Config and Event sent to DFCX");
+
         return;
       }
 
