@@ -1,3 +1,143 @@
+"use strict";
+
+const WebSocket = require("ws");
+const { sessionClient, createSessionPath } = require("../dfcx/client");
+
+module.exports = function (server) {
+  const wss = new WebSocket.Server({ server, path: "/streaming" });
+
+  wss.on("connection", (ws) => {
+    console.log("✅ Twilio WebSocket connected");
+
+    let callSid = null;
+    let streamSid = null;
+    let dfcxStream = null;
+    let isBotSpeaking = true; // The "Gate": Prevents Twilio noise from killing the Start Event
+
+    ws.on("message", (msg) => {
+      let json;
+      try {
+        json = JSON.parse(msg);
+      } catch (err) {
+        return;
+      }
+
+      /* ---------------- 1. START EVENT ---------------- */
+      if (json.event === "start") {
+        callSid = json.start?.callSid;
+        streamSid = json.start?.streamSid; // Corrected path
+        console.log(`🚀 Session Started | CallSid: ${callSid} | StreamSid: ${streamSid}`);
+
+        const sessionPath = createSessionPath(callSid);
+        dfcxStream = sessionClient.streamingDetectIntent();
+
+        // --- DFCX Listener: Google -> Relay -> Twilio ---
+        dfcxStream.on("data", (data) => {
+          // 1. Log Transcripts (if any)
+          if (data.recognitionResult) {
+            console.log(`🎤 Heard: "${data.recognitionResult.transcript}"`);
+          }
+
+          // 2. Capture Audio (Check both common streaming response paths)
+          const audioBuffer = data.detectIntentResponse?.outputAudio;
+
+          if (audioBuffer && ws.readyState === WebSocket.OPEN) {
+            // Split into 20ms chunks (160 bytes for MuLaw) so Twilio doesn't buffer-overflow
+            const FRAME_SIZE = 160;
+            for (let i = 0; i < audioBuffer.length; i += FRAME_SIZE) {
+              ws.send(JSON.stringify({
+                event: "media",
+                streamSid,
+                media: { payload: audioBuffer.slice(i, i + FRAME_SIZE).toString("base64") },
+              }));
+            }
+          }
+
+          // 3. Log Agent Text
+          const responses = data.detectIntentResponse?.queryResult?.responseMessages;
+          if (responses) {
+            responses.forEach(res => {
+              if (res.text) console.log(`🤖 Agent: ${res.text.text.join(" ")}`);
+            });
+          }
+        });
+
+        dfcxStream.on("error", (err) => {
+          console.error(`❌ DFCX Error: ${err.message}`);
+        });
+
+        // --- STEP A: Send Configuration ---
+        // Using MULAW directly to avoid the lag of PCM conversion
+        dfcxStream.write({
+          session: sessionPath,
+          queryInput: {
+            audio: {
+              config: {
+                audioEncoding: "AUDIO_ENCODING_MULAW",
+                singleUtterance: true,
+                sampleRateHertz: 8000,
+              },
+            },
+            languageCode: "en-US",
+          },
+          outputAudioConfig: {
+            audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW",
+            sampleRateHertz: 8000,
+          },
+        });
+
+        // --- STEP B: Send the Custom Event ---
+        // This triggers your DFCX 'media' event handler
+        dfcxStream.write({
+          queryInput: {
+            event: { event: "media" } 
+          }
+        });
+
+        console.log("✅ Config and Event 'media' sent to DFCX");
+
+        // --- STEP C: Open the Audio Gate after a delay ---
+        // Wait 1.5s to let the bot finish the welcome message before listening to caller
+        setTimeout(() => {
+          isBotSpeaking = false;
+          console.log("🔓 Audio Gate Open: Listening to caller...");
+        }, 1500);
+
+        return;
+      }
+
+      /* ---------------- 2. MEDIA EVENT ---------------- */
+      if (json.event === "media") {
+        // If bot is still doing the welcome event, ignore incoming phone noise
+        if (isBotSpeaking || !dfcxStream || !dfcxStream.writable) return;
+
+        // Send raw MuLaw bytes directly to DFCX (No conversion needed now)
+        dfcxStream.write({
+          queryInput: {
+            audio: { audio: json.media.payload }
+          }
+        });
+      }
+
+      /* ---------------- 3. STOP EVENT ---------------- */
+      if (json.event === "stop") {
+        console.log(`🛑 Twilio STOP | CallSid: ${callSid}`);
+        if (dfcxStream) {
+          dfcxStream.end(); // Inform Google we are done sending audio
+        }
+      }
+    });
+
+    /* ---------------- 4. CLOSE EVENT ---------------- */
+    ws.on("close", () => {
+      console.log(`🔌 WebSocket Closed | CallSid: ${callSid}`);
+      if (dfcxStream) {
+        dfcxStream.destroy();
+        dfcxStream = null;
+      }
+    });
+  });
+};
 
 // "use strict";
 
@@ -15,7 +155,7 @@
 //     let callSid = null;
 //     let streamSid = null;
 //     let dfcxStream = null;
-
+// let packetCount = 0;
 //     ws.on("message", (msg) => {
 //       let json;
 //       try {
@@ -25,12 +165,13 @@
 //         return;
 //       }
 
+//       // console.log('inputs events ---', json.event)
+
 //       /* ---------------- 1. START EVENT ---------------- */
 //       if (json.event === "start") {
 //         callSid = json.start?.callSid;
-//         streamSid = json.streamSid;
-
-//         console.log(`🚀 Session Started | CallSid: ${callSid}`);
+//         streamSid = json.start?.streamSid;
+//         console.log(`🚀 Session Started | CallSid: ${callSid}`,streamSid);
 
 //         const sessionPath = createSessionPath(callSid);
 
@@ -42,32 +183,23 @@
 //         });
 
 //         dfcxStream.on("data", (data) => {
-//           // 1️⃣ Log transcript
+//                     // 1️⃣ Log transcript
 //           if (data.recognitionResult) {
 //             console.log(
 //               `🎤 [${callSid}] Heard: "${data.recognitionResult.transcript}" (Final: ${data.recognitionResult.isFinal})`
 //             );
 //           }
 
-//           // 2️⃣ Send audio back to Twilio
+//           // 2️⃣ Send audio back to Twilio **immediately**
 //           const outputAudio = data.detectIntentResponse?.outputAudio;
-//           if (outputAudio?.length) {
-//             console.log("🔊 Sending audio to Twilio...");
-
+//           if (outputAudio?.length && ws.readyState === WebSocket.OPEN) {
 //             const wav = new WaveFile(outputAudio);
 //             wav.toMuLaw();
 //             const mulaw = Buffer.from(wav.getSamples());
-
 //             const FRAME_SIZE = 160; // 20ms per frame
 //             let offset = 0;
 
-//             // Stream audio in real-time using setInterval
-//             const interval = setInterval(() => {
-//               if (offset >= mulaw.length) {
-//                 clearInterval(interval);
-//                 return;
-//               }
-
+//             while (offset < mulaw.length) {
 //               const chunk = mulaw.slice(offset, offset + FRAME_SIZE);
 //               offset += FRAME_SIZE;
 
@@ -78,8 +210,9 @@
 //                   media: { payload: chunk.toString("base64") },
 //                 })
 //               );
-//             }, 20); // 20ms per frame
+//             }
 //           }
+//           console.log('sending event back to twilio');
 
 //           // 3️⃣ Log agent text responses
 //           const responses = data.detectIntentResponse?.queryResult?.responseMessages;
@@ -99,43 +232,49 @@
 //             audio: {
 //               config: {
 //                 audioEncoding: "AUDIO_ENCODING_LINEAR_16",
-//                 singleUtterance: false,
+//                 singleUtterance: true,
 //                 sampleRateHertz: 8000,
 //               },
 //             },
 //             languageCode: "en-US",
 //           },
 //           outputAudioConfig: {
-//             audioEncoding: "OUTPUT_AUDIO_ENCODING_LINEAR_16",
+//             audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW",
 //             sampleRateHertz: 8000,
 //             voice: { name: "en-US-Standard-C" },
 //           },
 //         });
 
 //         console.log("✅ Dialogflow stream initialized");
+//         dfcxStream.write({
+//         queryInput: {
+//             event: {
+//                 event: "media" 
+//             }
+//         }
+//     });
+//        console.log("✅ Config and Event sent to DFCX");
 //         return;
 //       }
 
 //       /* ---------------- 2. MEDIA EVENT ---------------- */
 //       if (json.event === "media") {
-//         if (!json.media?.payload) {
-//           console.warn("⚠️ Media event without payload, skipping");
-//           return;
-//         }
+//         if (!json.media?.payload) return;
+//         packetCount++;
 
+//       // console.log('sending event to dfcx', json.event)
+//         // Only log once every 50 packets (approx. once per second)
+//         // if (packetCount % 50 === 0) {
+//         //     console.log(`Streaming: Received ${packetCount} audio packets...`);
+//         // }
 //         const mulawBytes = Buffer.from(json.media.payload, "base64");
 //         const pcmBuffer = mulawToPCM(mulawBytes);
-
 //         if (!pcmBuffer?.length) return;
 
 //         // Send user audio to Dialogflow
 //         dfcxStream.write({
-//           queryInput: {
-//             audio: { audio: pcmBuffer },
-//           },
+//           queryInput: { audio: { audio: pcmBuffer } },
 //         });
-
-//         // console.log("✅ User audio sent to Dialogflow");
 //         return;
 //       }
 
@@ -144,178 +283,20 @@
 //         console.log(`🛑 Call Ended | CallSid: ${callSid}`);
 //         if (dfcxStream) {
 //           dfcxStream.end();
-//           dfcxStream = null;
+//           console.log("DFCX write-stream ended, waiting for final response...");
+
+//           // dfcxStream = null;
 //         }
 //       }
 //     });
 
 //     ws.on("close", () => {
 //       console.log(`🔌 WebSocket Closed | CallSid: ${callSid}`);
-//       if (dfcxStream) {
-//         dfcxStream.end();
-//       }
+//       if (dfcxStream) 
+//         {dfcxStream.destroy();
+//       dfcxStream = null;
+//         }
 //     });
 //   });
 // };
-
-"use strict";
-
-const WebSocket = require("ws");
-const { sessionClient, createSessionPath } = require("../dfcx/client");
-const { mulawToPCM } = require("../utils/audio");
-const { WaveFile } = require("wavefile");
-
-module.exports = function (server) {
-  const wss = new WebSocket.Server({ server, path: "/streaming" });
-
-  wss.on("connection", (ws) => {
-    console.log("✅ Twilio WebSocket connected");
-
-    let callSid = null;
-    let streamSid = null;
-    let dfcxStream = null;
-let packetCount = 0;
-    ws.on("message", (msg) => {
-      let json;
-      try {
-        json = JSON.parse(msg);
-      } catch (err) {
-        console.error("❌ Invalid JSON from Twilio");
-        return;
-      }
-
-      // console.log('inputs events ---', json.event)
-
-      /* ---------------- 1. START EVENT ---------------- */
-      if (json.event === "start") {
-        callSid = json.start?.callSid;
-        streamSid = json.start?.streamSid;
-        console.log(`🚀 Session Started | CallSid: ${callSid}`,streamSid);
-
-        const sessionPath = createSessionPath(callSid);
-
-        // Initialize bi-directional Dialogflow stream
-        dfcxStream = sessionClient.streamingDetectIntent();
-
-        dfcxStream.on("error", (err) => {
-          console.error(`❌ DFCX [${callSid}] Error:`, err.message);
-        });
-
-        dfcxStream.on("data", (data) => {
-                    // 1️⃣ Log transcript
-          if (data.recognitionResult) {
-            console.log(
-              `🎤 [${callSid}] Heard: "${data.recognitionResult.transcript}" (Final: ${data.recognitionResult.isFinal})`
-            );
-          }
-
-          // 2️⃣ Send audio back to Twilio **immediately**
-          const outputAudio = data.detectIntentResponse?.outputAudio;
-          if (outputAudio?.length && ws.readyState === WebSocket.OPEN) {
-            const wav = new WaveFile(outputAudio);
-            wav.toMuLaw();
-            const mulaw = Buffer.from(wav.getSamples());
-            const FRAME_SIZE = 160; // 20ms per frame
-            let offset = 0;
-
-            while (offset < mulaw.length) {
-              const chunk = mulaw.slice(offset, offset + FRAME_SIZE);
-              offset += FRAME_SIZE;
-
-              ws.send(
-                JSON.stringify({
-                  event: "media",
-                  streamSid,
-                  media: { payload: chunk.toString("base64") },
-                })
-              );
-            }
-          }
-          console.log('sending event back to twilio');
-
-          // 3️⃣ Log agent text responses
-          const responses = data.detectIntentResponse?.queryResult?.responseMessages;
-          if (responses) {
-            responses.forEach((res) => {
-              if (res.text) {
-                console.log(`🤖 [${callSid}] Agent:`, res.text.text.join(" "));
-              }
-            });
-          }
-        });
-
-        // Send initial configuration to Dialogflow
-        dfcxStream.write({
-          session: sessionPath,
-          queryInput: {
-            audio: {
-              config: {
-                audioEncoding: "AUDIO_ENCODING_LINEAR_16",
-                singleUtterance: true,
-                sampleRateHertz: 8000,
-              },
-            },
-            languageCode: "en-US",
-          },
-          outputAudioConfig: {
-            audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW",
-            sampleRateHertz: 8000,
-            voice: { name: "en-US-Standard-C" },
-          },
-        });
-
-        console.log("✅ Dialogflow stream initialized");
-        dfcxStream.write({
-        queryInput: {
-            event: {
-                event: "media" 
-            }
-        }
-    });
-       console.log("✅ Config and Event sent to DFCX");
-        return;
-      }
-
-      /* ---------------- 2. MEDIA EVENT ---------------- */
-      if (json.event === "media") {
-        if (!json.media?.payload) return;
-        packetCount++;
-
-      // console.log('sending event to dfcx', json.event)
-        // Only log once every 50 packets (approx. once per second)
-        // if (packetCount % 50 === 0) {
-        //     console.log(`Streaming: Received ${packetCount} audio packets...`);
-        // }
-        const mulawBytes = Buffer.from(json.media.payload, "base64");
-        const pcmBuffer = mulawToPCM(mulawBytes);
-        if (!pcmBuffer?.length) return;
-
-        // Send user audio to Dialogflow
-        dfcxStream.write({
-          queryInput: { audio: { audio: pcmBuffer } },
-        });
-        return;
-      }
-
-      /* ---------------- 3. STOP EVENT ---------------- */
-      if (json.event === "stop") {
-        console.log(`🛑 Call Ended | CallSid: ${callSid}`);
-        if (dfcxStream) {
-          dfcxStream.end();
-          console.log("DFCX write-stream ended, waiting for final response...");
-
-          // dfcxStream = null;
-        }
-      }
-    });
-
-    ws.on("close", () => {
-      console.log(`🔌 WebSocket Closed | CallSid: ${callSid}`);
-      if (dfcxStream) 
-        {dfcxStream.destroy();
-      dfcxStream = null;
-        }
-    });
-  });
-};
 
