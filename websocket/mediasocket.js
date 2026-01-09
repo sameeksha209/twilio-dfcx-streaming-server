@@ -235,7 +235,7 @@ module.exports = function (server) {
             audio: {
               config: {
                 audioEncoding: "AUDIO_ENCODING_LINEAR_16",
-                singleUtterance: true,
+                singleUtterance: false,
                 sampleRateHertz: 8000,
               },
             },
