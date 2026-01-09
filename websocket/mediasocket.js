@@ -198,6 +198,11 @@ module.exports = function (server) {
         });
 
         dfcxStream.on("data", (data) => {
+           if (data.recognitionResult) {
+            console.log(
+              `🎤 [${callSid}] Heard: "${data.recognitionResult.transcript}" (Final: ${data.recognitionResult.isFinal})`
+            );
+          }
           // Log if the event actually triggered
           if (data.detectIntentResponse?.queryResult?.triggeredEvent) {
              console.log("🎯 Event Triggered:", data.detectIntentResponse.queryResult.triggeredEvent);
