@@ -184,7 +184,7 @@ let packetCount = 0;
         return;
       }
 
-      console.log('inputs events ---', json.event)
+      // console.log('inputs events ---', json.event)
 
       /* ---------------- 1. START EVENT ---------------- */
       if (json.event === "start") {
@@ -272,9 +272,7 @@ let packetCount = 0;
             }
         }
     });
-
-    console.log("✅ Config and Event sent to DFCX");
-
+       console.log("✅ Config and Event sent to DFCX", json.event);
         return;
       }
 
