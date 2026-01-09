@@ -189,8 +189,8 @@ let packetCount = 0;
       /* ---------------- 1. START EVENT ---------------- */
       if (json.event === "start") {
         callSid = json.start?.callSid;
-        streamSid = json.streamSid;
-        console.log(`🚀 Session Started | CallSid: ${callSid}`);
+        streamSid = json.start?.streamSid;
+        console.log(`🚀 Session Started | CallSid: ${callSid}`,streamSid);
 
         const sessionPath = createSessionPath(callSid);
 
@@ -251,7 +251,7 @@ let packetCount = 0;
             audio: {
               config: {
                 audioEncoding: "AUDIO_ENCODING_LINEAR_16",
-                singleUtterance: false,
+                singleUtterance: true,
                 sampleRateHertz: 8000,
               },
             },
@@ -293,14 +293,19 @@ let packetCount = 0;
         console.log(`🛑 Call Ended | CallSid: ${callSid}`);
         if (dfcxStream) {
           dfcxStream.end();
-          dfcxStream = null;
+          console.log("DFCX write-stream ended, waiting for final response...");
+
+          // dfcxStream = null;
         }
       }
     });
 
     ws.on("close", () => {
       console.log(`🔌 WebSocket Closed | CallSid: ${callSid}`);
-      if (dfcxStream) dfcxStream.end();
+      if (dfcxStream) 
+        {dfcxStream.destroy();
+      dfcxStream = null;
+        }
     });
   });
 };
