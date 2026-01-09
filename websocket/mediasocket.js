@@ -202,6 +202,14 @@ let packetCount = 0;
         });
 
         dfcxStream.on("data", (data) => {
+          dfcxStream.write({
+        queryInput: {
+            event: {
+                event: json.event 
+            }
+        }
+      });
+      console.log('event send',json.event)
           // 1️⃣ Log transcript
           if (data.recognitionResult) {
             console.log(
@@ -280,18 +288,12 @@ let packetCount = 0;
       if (json.event === "media") {
         if (!json.media?.payload) return;
         packetCount++;
-        dfcxStream.write({
-        queryInput: {
-            event: {
-                event: json.event 
-            }
-        }
-      });
+
       console.log('sending event to dfcx', json.event)
         // Only log once every 50 packets (approx. once per second)
-        if (packetCount % 50 === 0) {
-            console.log(`Streaming: Received ${packetCount} audio packets...`);
-        }
+        // if (packetCount % 50 === 0) {
+        //     console.log(`Streaming: Received ${packetCount} audio packets...`);
+        // }
         const mulawBytes = Buffer.from(json.media.payload, "base64");
         const pcmBuffer = mulawToPCM(mulawBytes);
         if (!pcmBuffer?.length) return;
