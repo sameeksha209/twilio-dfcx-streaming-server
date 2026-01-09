@@ -268,11 +268,11 @@ let packetCount = 0;
         dfcxStream.write({
         queryInput: {
             event: {
-                event: 'media' 
+                event: "media" 
             }
         }
     });
-       console.log("✅ Config and Event sent to DFCX", json.event);
+       console.log("✅ Config and Event sent to DFCX");
         return;
       }
 
@@ -281,7 +281,7 @@ let packetCount = 0;
         if (!json.media?.payload) return;
         packetCount++;
 
-      console.log('sending event to dfcx', json.event)
+      // console.log('sending event to dfcx', json.event)
         // Only log once every 50 packets (approx. once per second)
         // if (packetCount % 50 === 0) {
         //     console.log(`Streaming: Received ${packetCount} audio packets...`);
