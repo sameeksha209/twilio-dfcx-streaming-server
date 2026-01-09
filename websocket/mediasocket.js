@@ -174,7 +174,7 @@ module.exports = function (server) {
     let callSid = null;
     let streamSid = null;
     let dfcxStream = null;
-
+let packetCount = 0;
     ws.on("message", (msg) => {
       let json;
       try {
@@ -271,7 +271,12 @@ module.exports = function (server) {
       /* ---------------- 2. MEDIA EVENT ---------------- */
       if (json.event === "media") {
         if (!json.media?.payload) return;
-
+        packetCount++;
+        
+        // Only log once every 50 packets (approx. once per second)
+        if (packetCount % 50 === 0) {
+            console.log(`Streaming: Received ${packetCount} audio packets...`);
+        }
         const mulawBytes = Buffer.from(json.media.payload, "base64");
         const pcmBuffer = mulawToPCM(mulawBytes);
         if (!pcmBuffer?.length) return;
