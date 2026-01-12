@@ -1,4 +1,5 @@
 const { sessionClient, createSessionPath } = require("../dfcx/client");
+const { WaveFile } = require("wavefile");
 
 let callSid;
 let streamSid;
