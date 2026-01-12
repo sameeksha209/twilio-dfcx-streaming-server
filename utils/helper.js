@@ -18,7 +18,7 @@ function startEventTurn(eventName, callSid, streamSid, ws) {
     activeTurn = "EVENT";
 
     dfcxStream = sessionClient.streamingDetectIntent();
-    attachDfcxHandlers();
+    attachDfcxHandlers(callSid, streamSid, ws);
 
     dfcxStream.write({
         session: createSessionPath(callSid),
