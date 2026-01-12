@@ -109,7 +109,7 @@
 
 //         const mulawBytes = Buffer.from(json.media.payload, "base64");
 //         const pcmBuffer = mulawToPCM(mulawBytes);
-        
+
 //         if (pcmBuffer?.length && dfcxStream.writable) {
 //           dfcxStream.write({
 //             queryInput: { audio: { audio: pcmBuffer } },
@@ -132,13 +132,18 @@
 //     });
 //   });
 // };
+
 "use strict";
 
 const WebSocket = require("ws");
-const { WaveFile } = require("wavefile");
-// const { sessionClient, createSessionPath } = require("../dfcx/client");
 const { mulawToPCM } = require("../utils/audio");
-const { startEventTurn, startAudioTurn, closeTurn } = require("../utils/helper");
+const {
+  startEventTurn,
+  startAudioTurn,
+  closeTurn,
+  getDfcxStream,
+  isAudioTurn
+} = require("../utils/helper");
 
 module.exports = function (server) {
   const wss = new WebSocket.Server({ server, path: "/streaming" });
@@ -148,76 +153,65 @@ module.exports = function (server) {
 
     let callSid;
     let streamSid;
-    let dfcxStream = null;
-    let activeTurn = null; // null | "EVENT" | "AUDIO"
-
-    /* ---------------- TWILIO EVENTS ---------------- */
 
     ws.on("message", (msg) => {
       let json;
       try {
         json = JSON.parse(msg);
-      } catch {
-        return;
-      }
+      } catch { return; }
 
       /* ---- CALL START ---- */
       if (json.event === "start") {
         callSid = json.start.callSid;
         streamSid = json.start.streamSid;
-
         console.log(`🚀 Call Started: ${callSid}`);
 
-        // FIRST TURN = EVENT (WELCOME)
+        // Trigger Welcome Greeting
         startEventTurn("media", callSid, streamSid, ws);
         return;
       }
 
       /* ---- AUDIO MEDIA ---- */
       if (json.event === "media") {
-        // Start audio turn lazily
-        if (activeTurn === null) {
+        // If nothing is happening, start a voice turn
+        if (isAudioTurn() === false && getDfcxStream() === null) {
           startAudioTurn(callSid, streamSid, ws);
         }
 
-        if (activeTurn !== "AUDIO" || !dfcxStream) return;
+        const currentStream = getDfcxStream();
 
-        const mulawBytes = Buffer.from(json.media.payload, "base64");
-        const pcm = mulawToPCM(mulawBytes);
+        // ONLY forward if the helper is officially in AUDIO mode
+        if (isAudioTurn() && currentStream) {
+          const mulawBytes = Buffer.from(json.media.payload, "base64");
+          const pcm = mulawToPCM(mulawBytes);
 
-        if (pcm?.length) {
-          dfcxStream.write({
-            queryInput: { audio: { audio: pcm } },
-          });
+          if (pcm?.length) {
+            currentStream.write({
+              queryInput: { audio: { audio: pcm } },
+            });
+          }
         }
         return;
       }
 
       /* ---- DTMF ---- */
       if (json.event === "dtmf") {
-        const digit = json.dtmf.digit;
-        console.log(`🔢 DTMF: ${digit}`);
-
-        // Interrupt audio if needed
-        if (activeTurn === "AUDIO" && dfcxStream) {
-          dfcxStream.end();
-          closeTurn();
-        }
-
-        startEventTurn(`DTMF_${digit}`);
+        console.log(`🔢 DTMF: ${json.dtmf.digit}`);
+        closeTurn(); // Stop current turn
+        startEventTurn(`DTMF_${json.dtmf.digit}`, callSid, streamSid, ws);
         return;
       }
 
       /* ---- CALL END ---- */
       if (json.event === "stop") {
-        console.log("📴 Call ended");
-        if (dfcxStream) dfcxStream.destroy();
+        console.log("📴 Call ended - Cleaning up");
+        closeTurn();
       }
     });
 
     ws.on("close", () => {
       console.log("🔌 WebSocket closed");
-      if (dfcxStream) dfcxStream.destroy();
+      closeTurn();
     });
   });
 };
