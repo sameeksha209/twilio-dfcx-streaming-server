@@ -71,6 +71,32 @@ function startAudioTurn(callSid, streamSid, ws) {
     });
 }
 
+function startTextTurn(text, callSid, streamSid, ws) {
+    if (!canStartTurn()) return;
+
+    console.log(`🔢 TEXT TURN (DTMF) → "${text}"`);
+    activeTurn = "TEXT";
+    isEnding = false;
+
+    dfcxStream = sessionClient.streamingDetectIntent();
+    attachDfcxHandlers(callSid, streamSid, ws);
+
+    dfcxStream.write({
+        session: createSessionPath(callSid),
+        queryInput: {
+            text: { text: text }, // Sends "1", "2", etc. as text
+            languageCode: "en-US",
+        },
+        outputAudioConfig: {
+            audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW",
+            sampleRateHertz: 8000,
+        },
+    });
+
+    // End the request side so Google can respond
+    dfcxStream.end();
+}
+
 function closeTurn() {
     isEnding = true; // Stop any more writes immediately
     if (dfcxStream) {
@@ -125,7 +151,6 @@ function sendAudioToTwilio(outputAudio, streamSid, ws) {
     }
 }
 
-module.exports = { 
-    startEventTurn, startAudioTurn, closeTurn, 
-    getDfcxStream, isAudioTurn, canStartTurn, canWrite 
+module.exports = {
+    startEventTurn, startAudioTurn, closeTurn, getDfcxStream, isAudioTurn, canStartTurn, canWrite, startTextTurn
 };

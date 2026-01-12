@@ -143,7 +143,8 @@ const {
   closeTurn,
   getDfcxStream,
   isAudioTurn,
-  canWrite
+  canWrite,
+  startTextTurn
 } = require("../utils/helper");
 
 module.exports = function (server) {
@@ -200,7 +201,8 @@ module.exports = function (server) {
       if (json.event === "dtmf") {
         console.log(`🔢 DTMF: ${json.dtmf.digit}`);
         closeTurn(); // Stop current turn
-        startEventTurn(`DTMF_${json.dtmf.digit}`, callSid, streamSid, ws);
+        //startEventTurn(`DTMF_${json.dtmf.digit}`, callSid, streamSid, ws);
+        startTextTurn(json.dtmf.digit, callSid, streamSid, ws);
         return;
       }
 
