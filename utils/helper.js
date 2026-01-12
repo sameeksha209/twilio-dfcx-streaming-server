@@ -10,7 +10,7 @@ function canStartTurn() {
     return activeTurn === null;
 }
 
-function startEventTurn(eventName) {
+function startEventTurn(eventName, callSid, streamSid, ws) {
     if (!canStartTurn()) return;
 
     console.log(`🎯 EVENT TURN → ${eventName}`);
@@ -35,14 +35,14 @@ function startEventTurn(eventName) {
     dfcxStream.end();
 }
 
-function startAudioTurn() {
+function startAudioTurn(callSid, streamSid, ws) {
     if (!canStartTurn()) return;
 
     console.log("🎤 AUDIO TURN START");
     activeTurn = "AUDIO";
 
     dfcxStream = sessionClient.streamingDetectIntent();
-    attachDfcxHandlers();
+    attachDfcxHandlers(callSid, streamSid, ws);
 
     dfcxStream.write({
         session: createSessionPath(callSid),
@@ -74,7 +74,7 @@ function closeTurn() {
 
 /* ---------------- DFCX HANDLERS ---------------- */
 
-function attachDfcxHandlers() {
+function attachDfcxHandlers(callSid, streamSid, ws) {
     dfcxStream.on("error", (err) => {
         console.error("❌ DFCX Error:", err.message);
         closeTurn();
@@ -93,7 +93,7 @@ function attachDfcxHandlers() {
         // Bot audio
         const outputAudio = data.detectIntentResponse?.outputAudio;
         if (outputAudio?.length) {
-            sendAudioToTwilio(outputAudio);
+            sendAudioToTwilio(outputAudio, callSid, streamSid, ws);
             closeTurn();
         }
     });
@@ -101,7 +101,7 @@ function attachDfcxHandlers() {
 
 /* ---------------- AUDIO OUT ---------------- */
 
-function sendAudioToTwilio(outputAudio) {
+function sendAudioToTwilio(outputAudio, callSid, streamSid, ws) {
     const wav = new WaveFile(outputAudio);
     wav.toMuLaw();
     const mulaw = Buffer.from(wav.getSamples());

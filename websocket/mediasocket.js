@@ -169,7 +169,7 @@ module.exports = function (server) {
         console.log(`🚀 Call Started: ${callSid}`);
 
         // FIRST TURN = EVENT (WELCOME)
-        startEventTurn("media");
+        startEventTurn("media", callSid, streamSid, ws);
         return;
       }
 
@@ -177,7 +177,7 @@ module.exports = function (server) {
       if (json.event === "media") {
         // Start audio turn lazily
         if (activeTurn === null) {
-          startAudioTurn();
+          startAudioTurn(callSid, streamSid, ws);
         }
 
         if (activeTurn !== "AUDIO" || !dfcxStream) return;
