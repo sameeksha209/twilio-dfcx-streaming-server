@@ -90,8 +90,8 @@ function startAudioTurn(callSid, streamSid, ws) {
  */
 function closeTurn() {
     if (dfcxStream) {
-        dfcxStream.destroy();
-        dfcxStream = null;
+        dfcxStream.end();
+        //dfcxStream = null;
     }
     activeTurn = null;
     console.log("🔁 Turn closed");
