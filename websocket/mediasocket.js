@@ -180,15 +180,17 @@ module.exports = function (server) {
 
         const currentStream = getDfcxStream();
 
-        // ONLY forward if the helper is officially in AUDIO mode
-        if (isAudioTurn() && currentStream) {
-          const mulawBytes = Buffer.from(json.media.payload, "base64");
-          const pcm = mulawToPCM(mulawBytes);
 
+        if (isAudioTurn() && canWrite() && currentStream) {
+          const pcm = mulawToPCM(Buffer.from(json.media.payload, "base64"));
           if (pcm?.length) {
-            currentStream.write({
-              queryInput: { audio: { audio: pcm } },
-            });
+            try {
+              currentStream.write({
+                queryInput: { audio: { audio: pcm } },
+              });
+            } catch (e) {
+              // This catch handles the rare millisecond overlap
+            }
           }
         }
         return;
