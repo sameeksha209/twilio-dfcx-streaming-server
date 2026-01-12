@@ -142,7 +142,8 @@ const {
   startAudioTurn,
   closeTurn,
   getDfcxStream,
-  isAudioTurn
+  isAudioTurn,
+  canWrite
 } = require("../utils/helper");
 
 module.exports = function (server) {
@@ -179,7 +180,6 @@ module.exports = function (server) {
         }
 
         const currentStream = getDfcxStream();
-
 
         if (isAudioTurn() && canWrite() && currentStream) {
           const pcm = mulawToPCM(Buffer.from(json.media.payload, "base64"));
