@@ -85,8 +85,9 @@ function startDtmfTurn(digit, callSid, streamSid, ws) {
         session: createSessionPath(callSid),
         queryInput: {
             dtmf: {
-                digits: digit,          // The actual numbers pressed
-                finishDigit: "#" // The termination character (e.g., "#")
+                digits: digit,
+                finishDigit: "#",
+                transformed: true
             },
             languageCode: "en-US",
         },
