@@ -71,11 +71,11 @@ function startAudioTurn(callSid, streamSid, ws) {
     });
 }
 
-function startTextTurn(text, callSid, streamSid, ws) {
+function startDtmfTurn(digit, callSid, streamSid, ws) {
     if (!canStartTurn()) return;
 
-    console.log(`🔢 TEXT TURN (DTMF) → "${text}"`);
-    activeTurn = "TEXT";
+    console.log(`DTMF INPUT → "${digit}"`);
+    activeTurn = "DTMF";
     isEnding = false;
 
     dfcxStream = sessionClient.streamingDetectIntent();
@@ -84,7 +84,9 @@ function startTextTurn(text, callSid, streamSid, ws) {
     dfcxStream.write({
         session: createSessionPath(callSid),
         queryInput: {
-            text: { text: text }, // Sends "1", "2", etc. as text
+            dtmf: {
+                digits: digit,
+            },
             languageCode: "en-US",
         },
         outputAudioConfig: {
@@ -152,5 +154,5 @@ function sendAudioToTwilio(outputAudio, streamSid, ws) {
 }
 
 module.exports = {
-    startEventTurn, startAudioTurn, closeTurn, getDfcxStream, isAudioTurn, canStartTurn, canWrite, startTextTurn
+    startEventTurn, startAudioTurn, closeTurn, getDfcxStream, isAudioTurn, canStartTurn, canWrite, startDtmfTurn
 };

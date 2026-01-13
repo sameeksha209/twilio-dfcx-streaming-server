@@ -199,10 +199,14 @@ module.exports = function (server) {
 
       /* ---- DTMF ---- */
       if (json.event === "dtmf") {
-        console.log(`🔢 DTMF: ${json.dtmf.digit}`);
-        closeTurn(); // Stop current turn
-        //startEventTurn(`DTMF_${json.dtmf.digit}`, callSid, streamSid, ws);
-        startTextTurn(json.dtmf.digit, callSid, streamSid, ws);
+        const digit = json.dtmf.digit;
+        console.log(`🔢 Twilio Signal: ${digit}`);
+
+        // 1. Immediately kill any current audio stream to free up the "Gate"
+        closeTurn();
+
+        // 2. Trigger the native DTMF turn
+        startDtmfTurn(digit, callSid, streamSid, ws);
         return;
       }
 
