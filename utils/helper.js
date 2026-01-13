@@ -71,7 +71,7 @@ function startAudioTurn(callSid, streamSid, ws) {
     });
 }
 
-function startDtmfTurn(digit, callSid, streamSid, ws) {
+/* function startDtmfTurn(digit, callSid, streamSid, ws) {
     if (!canStartTurn()) return;
 
     console.log(`DTMF INPUT → "${digit}"`);
@@ -80,12 +80,14 @@ function startDtmfTurn(digit, callSid, streamSid, ws) {
 
     dfcxStream = sessionClient.streamingDetectIntent();
     attachDfcxHandlers(callSid, streamSid, ws);
-
+    
     dfcxStream.write({
         session: createSessionPath(callSid),
         queryInput: {
-            text: {
-                text: `DTMF_${digit}`
+            dtmf: {
+                digits: digit,
+                //finishDigit: "#",
+                //transformed: true
             },
             languageCode: "en-US",
         },
@@ -96,6 +98,36 @@ function startDtmfTurn(digit, callSid, streamSid, ws) {
     });
 
     // End the request side so Google can respond
+    dfcxStream.end();
+} */
+
+function startDtmfTurn(digit, callSid, streamSid, ws) {
+    if (!canStartTurn()) return;
+    console.log(`DTMF INPUT → "${digit}"`);
+    activeTurn = "DTMF";
+    isEnding = false;
+
+    dfcxStream = sessionClient.streamingDetectIntent();
+    attachDfcxHandlers(callSid, streamSid, ws);
+
+    // 🎯 MATCHING THE NATIVE CONNECTOR PAYLOAD EXACTLY
+    const request = {
+        session: createSessionPath(callSid),
+        queryInput: {
+            dtmf: {
+                digits: "2",
+                transformed: true
+            },
+            languageCode: "en-US",
+        },
+        outputAudioConfig: {
+            audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW",
+            sampleRateHertz: 8000,
+        },
+    };
+
+    console.log("📤 Sending DTMF Payload:", JSON.stringify(request.queryInput.dtmf));
+    dfcxStream.write(request);
     dfcxStream.end();
 }
 
