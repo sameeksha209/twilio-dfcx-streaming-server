@@ -207,8 +207,15 @@ module.exports = function (server) {
         closeTurn();
 
         // 2. Trigger the native DTMF turn
-        startDtmfTurn(digit, callSid, streamSid, ws);
+        //startDtmfTurn(digit, callSid, streamSid, ws);
+        if (digit === "#") {
+          startDtmfTurn("", callSid, streamSid, ws, "#");
+        } else {
+          // Otherwise, it's just a normal digit
+          startDtmfTurn(digit, callSid, streamSid, ws, "");
+        }
         return;
+        
       }
 
       /* ---- CALL END ---- */

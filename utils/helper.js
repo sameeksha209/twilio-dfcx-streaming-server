@@ -71,10 +71,10 @@ function startAudioTurn(callSid, streamSid, ws) {
     });
 }
 
-function startDtmfTurn(digit, callSid, streamSid, ws) {
+function startDtmfTurn(digit, callSid, streamSid, ws, finishDigit = "") {
     if (!canStartTurn()) return;
 
-    console.log(`DTMF INPUT → "${digit}"`);
+    console.log(`DTMF INPUT → "${digit}", FINISH → "${finishDigit}"`);
     activeTurn = "DTMF";
     isEnding = false;
 
@@ -85,7 +85,8 @@ function startDtmfTurn(digit, callSid, streamSid, ws) {
         session: createSessionPath(callSid),
         queryInput: {
             dtmf: {
-                digits: String(digit),
+                digits: String(digit),          // The actual numbers pressed
+                finishDigit: String(finishDigit) // The termination character (e.g., "#")
             },
             languageCode: "en-US",
         },
