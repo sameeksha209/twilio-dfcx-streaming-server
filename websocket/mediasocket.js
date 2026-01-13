@@ -199,7 +199,7 @@ module.exports = function (server) {
       }
 
       /* ---- DTMF ---- */
-      /* if (json.event === "dtmf") {
+      if (json.event === "dtmf") {
         const digit = json.dtmf.digit;
         console.log(`🔢 Twilio Signal: ${digit}`);
 
@@ -212,13 +212,6 @@ module.exports = function (server) {
           startDtmfTurn(digit, callSid, streamSid, ws);
         return;
         
-      } */
-      if (json.event === "dtmf") {
-        const digit = json.dtmf.digit;
-        console.log(`🔢 Twilio Signal: ${digit}`);
-
-        startDtmfTurn(digit, callSid, streamSid, ws);
-        return;
       }
 
       /* ---- CALL END ---- */

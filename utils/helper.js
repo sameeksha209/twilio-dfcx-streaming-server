@@ -4,16 +4,11 @@ const { sessionClient, createSessionPath } = require("../dfcx/client");
 let dfcxStream = null;
 let activeTurn = null;
 let isEnding = false; // Guard to prevent 'write after end'
-let dtmfInProgress = false; 
 
 /**
  * Checks if the system is idle
  */
-//function canStartTurn() { return activeTurn === null; }
-// Update canStartTurn to check the lock
-function canStartTurn() { 
-    return activeTurn === null && dtmfInProgress === false; 
-}
+function canStartTurn() { return activeTurn === null; }
 /**
  * Getter to share the stream with the main socket file
  */
@@ -76,7 +71,7 @@ function startAudioTurn(callSid, streamSid, ws) {
     });
 }
 
-/* function startDtmfTurn(digit, callSid, streamSid, ws) {
+function startDtmfTurn(digit, callSid, streamSid, ws) {
     if (!canStartTurn()) return;
 
     console.log(`DTMF INPUT → "${digit}"`);
@@ -89,10 +84,8 @@ function startAudioTurn(callSid, streamSid, ws) {
     dfcxStream.write({
         session: createSessionPath(callSid),
         queryInput: {
-            dtmf: {
-                digits: digit,
-                finishDigit: "#",
-                transformed: true
+            text: {
+                text: `DTMF_${digit}`
             },
             languageCode: "en-US",
         },
@@ -104,41 +97,7 @@ function startAudioTurn(callSid, streamSid, ws) {
 
     // End the request side so Google can respond
     dfcxStream.end();
-} */
-
-// Modify startDtmfTurn to set the lock
-function startDtmfTurn(digit, callSid, streamSid, ws) {
-    if (activeTurn === "AUDIO") {
-        console.log('Inside dtmf audio turn:: ');
-        closeTurn(); // Kill any existing audio turn
-    }
-    
-    dtmfInProgress = true; // 🔒 LOCK ON
-    console.log(`DTMF INPUT → "${digit}"`);
-    activeTurn = "DTMF";
-    isEnding = false;
-
-    dfcxStream = sessionClient.streamingDetectIntent();
-    attachDfcxHandlers(callSid, streamSid, ws);
-
-    dfcxStream.write({
-        session: createSessionPath(callSid),
-        queryInput: {
-            dtmf: { digits: digit.toString() }, // Ensure string
-            languageCode: "en-US",
-        },
-        outputAudioConfig: {
-            audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW",
-            sampleRateHertz: 8000,
-        },
-    });
-
-    dfcxStream.end();
-    
-    // Release the lock after a small delay so audio can resume after response
-    setTimeout(() => { dtmfInProgress = false; }, 1500); 
 }
-
 
 function closeTurn() {
     isEnding = true; // Stop any more writes immediately
