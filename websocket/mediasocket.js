@@ -199,18 +199,25 @@ module.exports = function (server) {
       }
 
       /* ---- DTMF ---- */
-      if (json.event === "dtmf") {
+      /* if (json.event === "dtmf") {
         const digit = json.dtmf.digit;
         console.log(`🔢 Twilio Signal: ${digit}`);
 
         // 1. Immediately kill any current audio stream to free up the "Gate"
         closeTurn();
 
-        // 2. WAIT slightly for DFCX to register the stream closure
-        setTimeout(() => {
+        // 2. Trigger the native DTMF turn
+        //startDtmfTurn(digit, callSid, streamSid, ws);
+        
           startDtmfTurn(digit, callSid, streamSid, ws);
-        }, 200); // 200ms grace period
+        return;
+        
+      } */
+      if (json.event === "dtmf") {
+        const digit = json.dtmf.digit;
+        console.log(`🔢 Twilio Signal: ${digit}`);
 
+        startDtmfTurn(digit, callSid, streamSid, ws);
         return;
       }
 

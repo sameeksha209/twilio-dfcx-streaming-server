@@ -4,11 +4,16 @@ const { sessionClient, createSessionPath } = require("../dfcx/client");
 let dfcxStream = null;
 let activeTurn = null;
 let isEnding = false; // Guard to prevent 'write after end'
+let dtmfInProgress = false; 
 
 /**
  * Checks if the system is idle
  */
-function canStartTurn() { return activeTurn === null; }
+//function canStartTurn() { return activeTurn === null; }
+// Update canStartTurn to check the lock
+function canStartTurn() { 
+    return activeTurn === null && dtmfInProgress === false; 
+}
 /**
  * Getter to share the stream with the main socket file
  */
@@ -71,13 +76,10 @@ function startAudioTurn(callSid, streamSid, ws) {
     });
 }
 
-function startDtmfTurn(digit, callSid, streamSid, ws) {
+/* function startDtmfTurn(digit, callSid, streamSid, ws) {
     if (!canStartTurn()) return;
 
-    const sessionPath = createSessionPath(callSid); // Get the path
-    console.log(`🔗 SESSION PATH: ${sessionPath}`); // <--- ADD THIS LOG
     console.log(`DTMF INPUT → "${digit}"`);
-    
     activeTurn = "DTMF";
     isEnding = false;
 
@@ -85,9 +87,13 @@ function startDtmfTurn(digit, callSid, streamSid, ws) {
     attachDfcxHandlers(callSid, streamSid, ws);
 
     dfcxStream.write({
-        session: sessionPath, // Use the logged path
+        session: createSessionPath(callSid),
         queryInput: {
-            dtmf: { digits: digit },
+            dtmf: {
+                digits: digit,
+                finishDigit: "#",
+                transformed: true
+            },
             languageCode: "en-US",
         },
         outputAudioConfig: {
@@ -95,8 +101,44 @@ function startDtmfTurn(digit, callSid, streamSid, ws) {
             sampleRateHertz: 8000,
         },
     });
+
+    // End the request side so Google can respond
     dfcxStream.end();
+} */
+
+// Modify startDtmfTurn to set the lock
+function startDtmfTurn(digit, callSid, streamSid, ws) {
+    if (activeTurn === "AUDIO") {
+        console.log('Inside dtmf audio turn:: ');
+        closeTurn(); // Kill any existing audio turn
+    }
+    
+    dtmfInProgress = true; // 🔒 LOCK ON
+    console.log(`DTMF INPUT → "${digit}"`);
+    activeTurn = "DTMF";
+    isEnding = false;
+
+    dfcxStream = sessionClient.streamingDetectIntent();
+    attachDfcxHandlers(callSid, streamSid, ws);
+
+    dfcxStream.write({
+        session: createSessionPath(callSid),
+        queryInput: {
+            dtmf: { digits: digit.toString() }, // Ensure string
+            languageCode: "en-US",
+        },
+        outputAudioConfig: {
+            audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW",
+            sampleRateHertz: 8000,
+        },
+    });
+
+    dfcxStream.end();
+    
+    // Release the lock after a small delay so audio can resume after response
+    setTimeout(() => { dtmfInProgress = false; }, 1500); 
 }
+
 
 function closeTurn() {
     isEnding = true; // Stop any more writes immediately
