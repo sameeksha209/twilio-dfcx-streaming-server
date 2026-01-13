@@ -85,7 +85,7 @@ function startDtmfTurn(digit, callSid, streamSid, ws) {
         session: createSessionPath(callSid),
         queryInput: {
             dtmf: {
-                digits: digit,
+                digits: String(digit),
             },
             languageCode: "en-US",
         },
