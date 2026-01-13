@@ -164,6 +164,7 @@ module.exports = function (server) {
 
       /* ---- CALL START ---- */
       if (json.event === "start") {
+        console.log("JSON:: ", JSON.stringify(json, null, 2));
         callSid = json.start.callSid;
         streamSid = json.start.streamSid;
         console.log(`🚀 Call Started: ${callSid}`);
