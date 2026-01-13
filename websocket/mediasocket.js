@@ -144,7 +144,7 @@ const {
   getDfcxStream,
   isAudioTurn,
   canWrite,
-  startTextTurn
+  startDtmfTurn
 } = require("../utils/helper");
 
 module.exports = function (server) {
