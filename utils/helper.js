@@ -121,6 +121,16 @@ function attachDfcxHandlers(callSid, streamSid, ws) {
     });
 
     dfcxStream.on("data", (data) => {
+        // 🔍 DEBUG: Log the NLU Result
+        const queryResult = data.detectIntentResponse?.queryResult;
+        if (queryResult) {
+            console.log("--- DFCX Response Analysis ---");
+            console.log(`Current Page: ${queryResult.currentPage?.displayName}`);
+            console.log(`Matched Intent: ${queryResult.intent?.displayName || "NONE (No Match)"}`);
+            console.log(`Match Type: ${queryResult.match?.matchType}`);
+            console.log(`DTMF Digits Received: "${queryResult.dtmf?.digits}"`);
+            console.log("------------------------------");
+        }
         if (activeTurn === "AUDIO" && data.recognitionResult?.isFinal) {
             console.log(`🗣️ User: "${data.recognitionResult.transcript}"`);
             isEnding = true; // 🛑 BLOCK WRITES NOW
