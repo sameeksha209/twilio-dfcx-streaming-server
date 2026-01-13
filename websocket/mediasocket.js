@@ -206,12 +206,12 @@ module.exports = function (server) {
         // 1. Immediately kill any current audio stream to free up the "Gate"
         closeTurn();
 
-        // 2. Trigger the native DTMF turn
-        //startDtmfTurn(digit, callSid, streamSid, ws);
-        
+        // 2. WAIT slightly for DFCX to register the stream closure
+        setTimeout(() => {
           startDtmfTurn(digit, callSid, streamSid, ws);
+        }, 200); // 200ms grace period
+
         return;
-        
       }
 
       /* ---- CALL END ---- */

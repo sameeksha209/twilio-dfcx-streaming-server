@@ -74,7 +74,10 @@ function startAudioTurn(callSid, streamSid, ws) {
 function startDtmfTurn(digit, callSid, streamSid, ws) {
     if (!canStartTurn()) return;
 
+    const sessionPath = createSessionPath(callSid); // Get the path
+    console.log(`🔗 SESSION PATH: ${sessionPath}`); // <--- ADD THIS LOG
     console.log(`DTMF INPUT → "${digit}"`);
+    
     activeTurn = "DTMF";
     isEnding = false;
 
@@ -82,13 +85,9 @@ function startDtmfTurn(digit, callSid, streamSid, ws) {
     attachDfcxHandlers(callSid, streamSid, ws);
 
     dfcxStream.write({
-        session: createSessionPath(callSid),
+        session: sessionPath, // Use the logged path
         queryInput: {
-            dtmf: {
-                digits: digit,
-                finishDigit: "#",
-                transformed: true
-            },
+            dtmf: { digits: digit },
             languageCode: "en-US",
         },
         outputAudioConfig: {
@@ -96,8 +95,6 @@ function startDtmfTurn(digit, callSid, streamSid, ws) {
             sampleRateHertz: 8000,
         },
     });
-
-    // End the request side so Google can respond
     dfcxStream.end();
 }
 
