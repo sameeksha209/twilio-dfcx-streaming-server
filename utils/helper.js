@@ -133,7 +133,7 @@ function startAudioTurn(callSid, streamSid, ws) {
 
 function startDtmfTurn(digit, callSid, streamSid, ws) {
     if (!canStartTurn()) return;
-    console.log(`🎯 DTMF TURN START → "${digit}"`);
+    console.log(`🎯 DTMF TURN START → Digit: ${digit}`);
     activeTurn = "DTMF";
     isEnding = false;
  
@@ -141,27 +141,32 @@ function startDtmfTurn(digit, callSid, streamSid, ws) {
     dfcxStream = sessionClient.streamingDetectIntent();
     attachDfcxHandlers(callSid, streamSid, ws);
  
-    // FIX: 1. Use the SAME language code as your Audio turn (en-US)
-    // FIX: 2. Ensure types are strictly defined
-    const request = {
+    // STEP 1: Send the configuration packet FIRST
+    dfcxStream.write({
         session: createSessionPath(callSid),
         queryInput: {
-            languageCode: "en-US", // Use en-US consistently
-            dtmf: {
-                digits: String(digit), // Convert to string safely
-                transformed: true      // Explicit Boolean
-            },
+            languageCode: "en-US" // Just metadata here
         },
         outputAudioConfig: {
             audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW",
             sampleRateHertz: 8000,
-        },
+        }
+    });
+ 
+    // STEP 2: Send the actual DTMF data in a SEPARATE write call
+    // This forces the gRPC client to treat this as a 'DtmfInput' message
+    const dtmfPayload = {
+        queryInput: {
+            dtmf: {
+                digits: digit.toString(),
+                transformed: true // <--- Boolean, no quotes
+            }
+        }
     };
  
-    console.log("📤 Sending DTMF Payload to DFCX...");
-    // Write to stream
-    dfcxStream.write(request);
-    // IMPORTANT: End the stream so DFCX processes the "Final" intent match
+    console.log("📤 Sending DTMF Packet...");
+    dfcxStream.write(dtmfPayload);
+    // STEP 3: Finalize
     dfcxStream.end();
 }
 
