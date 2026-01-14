@@ -1,6 +1,6 @@
 const { WaveFile } = require("wavefile");
 const { sessionClient, createSessionPath } = require("../dfcx/client");
-//const { protos } = require('@google-cloud/dialogflow-cx');
+const { protos } = require('@google-cloud/dialogflow-cx');
 // Global state for the current call session
 let dfcxStream = null;
 let activeTurn = null;
@@ -74,36 +74,6 @@ function startAudioTurn(callSid, streamSid, ws) {
 
 /* function startDtmfTurn(digit, callSid, streamSid, ws) {
     if (!canStartTurn()) return;
-
-    console.log(`DTMF INPUT → "${digit}"`);
-    activeTurn = "DTMF";
-    isEnding = false;
-
-    dfcxStream = sessionClient.streamingDetectIntent();
-    attachDfcxHandlers(callSid, streamSid, ws);
-    
-    dfcxStream.write({
-        session: createSessionPath(callSid),
-        queryInput: {
-            dtmf: {
-                digits: digit,
-                //finishDigit: "#",
-                //transformed: true
-            },
-            languageCode: "en-US",
-        },
-        outputAudioConfig: {
-            audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW",
-            sampleRateHertz: 8000,
-        },
-    });
-
-    // End the request side so Google can respond
-    dfcxStream.end();
-} */
-
-/* function startDtmfTurn(digit, callSid, streamSid, ws) {
-    if (!canStartTurn()) return;
     console.log(`DTMF INPUT → "${digit}"`);
     activeTurn = "DTMF";
     isEnding = false;
@@ -116,7 +86,7 @@ function startAudioTurn(callSid, streamSid, ws) {
         session: createSessionPath(callSid),
         queryInput: {
             dtmf: {
-                digits: "2",
+                digits: digit,
                 transformed: true
             },
             languageCode: "en",
@@ -136,26 +106,19 @@ function startDtmfTurn(digit, callSid, streamSid, ws) {
     if (!canStartTurn()) return;
     activeTurn = "DTMF";
     isEnding = false;
-
     dfcxStream = sessionClient.streamingDetectIntent();
     attachDfcxHandlers(callSid, streamSid, ws);
-
-    // THE FIX: Explicitly structure the QueryInput using the Proto definition
-    // This prevents the SDK from stripping 'unknown' or 'default' fields.
-    // const queryInput = {
-    //     dtmf: {
-    //         digits: digit.toString(),
-    //         transformed: true // This is now locked into the Proto structure
-    //     },
-    //     languageCode: "en-US"
-    // };
-    const queryInput = {
-        "audioStreaming": {
-            "digits": digit,
-            // "finishDigit": "#"
-        },
-        "languageCode": "en-US"
-    }
+    // 1. Manually construct the DtmfInput message using the Proto class
+    // This forces the gRPC layer to include the field regardless of 'default' rules.
+    const dtmfInput = protos.google.cloud.dialogflow.cx.v3.DtmfInput.create({
+        digits: digit.toString(),
+        transformed: true
+    });
+    // 2. Wrap it in a QueryInput
+    const queryInput = protos.google.cloud.dialogflow.cx.v3.QueryInput.create({
+        dtmf: dtmfInput,
+        languageCode: "en-US"
+    });
     const request = {
         session: createSessionPath(callSid),
         queryInput: queryInput,
@@ -164,8 +127,7 @@ function startDtmfTurn(digit, callSid, streamSid, ws) {
             sampleRateHertz: 8000,
         },
     };
-
-    console.log("🚀 FORCING PROTOBUF PACKET...");
+    console.log("💎 SENDING SEALED PROTOBUF MESSAGE");
     dfcxStream.write(request);
     dfcxStream.end();
 }
