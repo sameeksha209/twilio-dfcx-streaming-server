@@ -110,31 +110,70 @@ function closeTurn() {
     console.log("🔁 Turn closed");
 }
 
+// function attachDfcxHandlers(callSid, streamSid, ws) {
+//     if (!dfcxStream) return;
+
+//     dfcxStream.on("error", (err) => {
+//         if (err.message.includes("write after end")) return; // Ignore known race condition
+//         console.error("❌ DFCX Error:", err.message);
+//         closeTurn();
+//     });
+
+//     dfcxStream.on("data", (data) => {
+//         console.log('data',data)
+//         console.log(`🗣️ User: "${data?.recognitionResult?.transcript}"`);
+
+//         if (activeTurn === "AUDIO" && data.recognitionResult?.isFinal) {
+//             console.log(`🗣️ User: "${data.recognitionResult.transcript}"`);
+//             isEnding = true; // 🛑 BLOCK WRITES NOW
+//             dfcxStream.end();
+//         }
+
+//         const outputAudio = data.detectIntentResponse?.outputAudio;
+//         console.log('output audio', outputAudio);
+//         if (outputAudio?.length) {
+//             console.log("🔊 Bot is speaking...");
+//             sendAudioToTwilio(outputAudio, streamSid, ws);
+//             closeTurn();
+//         }
+//     });
+// }
+
 function attachDfcxHandlers(callSid, streamSid, ws) {
     if (!dfcxStream) return;
 
     dfcxStream.on("error", (err) => {
-        if (err.message.includes("write after end")) return; // Ignore known race condition
+        if (err.message.includes("write after end")) return;
         console.error("❌ DFCX Error:", err.message);
         closeTurn();
     });
 
     dfcxStream.on("data", (data) => {
-        console.log('data',data)
-        console.log(`🗣️ User: "${data?.recognitionResult?.transcript}"`);
+        // 1. Handle Recognition Results
+        if (data.recognitionResult) {
+            const transcript = data?.recognitionResult?.transcript;
+            const isFinal = data?.recognitionResult?.isFinal;
+              console.log('transcript and isFinal', transcript,isFinal)
+            if (transcript) console.log(`🗣️ User: "${transcript}" ${isFinal ? '[FINAL]' : ''}`);
 
-        if (activeTurn === "AUDIO" && data.recognitionResult?.isFinal) {
-            console.log(`🗣️ User: "${data.recognitionResult.transcript}"`);
-            isEnding = true; // 🛑 BLOCK WRITES NOW
-            dfcxStream.end();
+            if (isFinal && activeTurn === "AUDIO") {
+                // We've heard the user, stop sending more audio from Twilio
+                isEnding = true; 
+                // Don't close the turn yet; we need to wait for the bot's response!
+            }
         }
 
-        const outputAudio = data.detectIntentResponse?.outputAudio;
-        console.log('output audio', outputAudio);
-        if (outputAudio?.length) {
-            console.log("🔊 Bot is speaking...");
-            sendAudioToTwilio(outputAudio, streamSid, ws);
-            closeTurn();
+        // 2. Handle the Bot's Response
+        if (data.detectIntentResponse) {
+            const outputAudio = data.detectIntentResponse.outputAudio;
+            
+            if (outputAudio && outputAudio.length > 0) {
+                console.log("🔊 Bot is speaking, sending to Twilio...");
+                sendAudioToTwilio(outputAudio, streamSid, ws);
+                
+                // IMPORTANT: Only close the turn AFTER we have processed the bot's response
+                closeTurn();
+            }
         }
     });
 }
