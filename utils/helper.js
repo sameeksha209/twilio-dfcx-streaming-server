@@ -1,5 +1,6 @@
 const { WaveFile } = require("wavefile");
 const { sessionClient, createSessionPath } = require("../dfcx/client");
+const { protos } = require('@google-cloud/dialogflow-cx');
 // Global state for the current call session
 let dfcxStream = null;
 let activeTurn = null;
@@ -133,40 +134,33 @@ function startAudioTurn(callSid, streamSid, ws) {
 
 function startDtmfTurn(digit, callSid, streamSid, ws) {
     if (!canStartTurn()) return;
-    console.log(`🎯 DTMF TURN START → Digit: ${digit}`);
     activeTurn = "DTMF";
     isEnding = false;
  
-    // Create the stream
     dfcxStream = sessionClient.streamingDetectIntent();
     attachDfcxHandlers(callSid, streamSid, ws);
  
-    // STEP 1: Send the configuration packet FIRST
-    dfcxStream.write({
-        session: createSessionPath(callSid),
-        queryInput: {
-            languageCode: "en-US" // Just metadata here
+    // THE FIX: Explicitly structure the QueryInput using the Proto definition
+    // This prevents the SDK from stripping 'unknown' or 'default' fields.
+    const queryInput = {
+        dtmf: {
+            digits: digit.toString(),
+            transformed: true // This is now locked into the Proto structure
         },
+        languageCode: "en-US"
+    };
+ 
+    const request = {
+        session: createSessionPath(callSid),
+        queryInput: queryInput,
         outputAudioConfig: {
             audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW",
             sampleRateHertz: 8000,
-        }
-    });
- 
-    // STEP 2: Send the actual DTMF data in a SEPARATE write call
-    // This forces the gRPC client to treat this as a 'DtmfInput' message
-    const dtmfPayload = {
-        queryInput: {
-            dtmf: {
-                digits: digit.toString(),
-                transformed: true // <--- Boolean, no quotes
-            }
-        }
+        },
     };
  
-    console.log("📤 Sending DTMF Packet...");
-    dfcxStream.write(dtmfPayload);
-    // STEP 3: Finalize
+    console.log("🚀 FORCING PROTOBUF PACKET...");
+    dfcxStream.write(request);
     dfcxStream.end();
 }
 
