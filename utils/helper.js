@@ -1,6 +1,5 @@
 const { WaveFile } = require("wavefile");
 const { sessionClient, createSessionPath } = require("../dfcx/client");
-const { protos } = require('@google-cloud/dialogflow-cx');
 // Global state for the current call session
 let dfcxStream = null;
 let activeTurn = null;
@@ -72,7 +71,7 @@ function startAudioTurn(callSid, streamSid, ws) {
     });
 }
 
-/* function startDtmfTurn(digit, callSid, streamSid, ws) {
+function startDtmfTurn(digit, callSid, streamSid, ws) {
     if (!canStartTurn()) return;
     console.log(`DTMF INPUT → "${digit}"`);
     activeTurn = "DTMF";
@@ -81,7 +80,6 @@ function startAudioTurn(callSid, streamSid, ws) {
     dfcxStream = sessionClient.streamingDetectIntent();
     attachDfcxHandlers(callSid, streamSid, ws);
 
-    // 🎯 MATCHING THE NATIVE CONNECTOR PAYLOAD EXACTLY
     const request = {
         session: createSessionPath(callSid),
         queryInput: {
@@ -98,36 +96,6 @@ function startAudioTurn(callSid, streamSid, ws) {
     };
 
     console.log("📤 Sending DTMF Payload:", JSON.stringify(request.queryInput.dtmf));
-    dfcxStream.write(request);
-    dfcxStream.end();
-} */
-
-function startDtmfTurn(digit, callSid, streamSid, ws) {
-    if (!canStartTurn()) return;
-    activeTurn = "DTMF";
-    isEnding = false;
-    dfcxStream = sessionClient.streamingDetectIntent();
-    attachDfcxHandlers(callSid, streamSid, ws);
-    // 1. Manually construct the DtmfInput message using the Proto class
-    // This forces the gRPC layer to include the field regardless of 'default' rules.
-    const dtmfInput = protos.google.cloud.dialogflow.cx.v3.DtmfInput.create({
-        digits: digit.toString(),
-        transformed: true
-    });
-    // 2. Wrap it in a QueryInput
-    const queryInput = protos.google.cloud.dialogflow.cx.v3.QueryInput.create({
-        dtmf: dtmfInput,
-        languageCode: "en-US"
-    });
-    const request = {
-        session: createSessionPath(callSid),
-        queryInput: queryInput,
-        outputAudioConfig: {
-            audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW",
-            sampleRateHertz: 8000,
-        },
-    };
-    console.log("💎 SENDING SEALED PROTOBUF MESSAGE");
     dfcxStream.write(request);
     dfcxStream.end();
 }
@@ -152,16 +120,6 @@ function attachDfcxHandlers(callSid, streamSid, ws) {
     });
 
     dfcxStream.on("data", (data) => {
-        // 🔍 DEBUG: Log the NLU Result
-        const queryResult = data.detectIntentResponse?.queryResult;
-        /* if (queryResult) {
-            console.log("--- DFCX Response Analysis ---");
-            console.log(`Current Page: ${queryResult.currentPage?.displayName}`);
-            console.log(`Matched Intent: ${queryResult.intent?.displayName || "NONE (No Match)"}`);
-            console.log(`Match Type: ${queryResult.match?.matchType}`);
-            console.log(`DTMF Digits Received: "${queryResult.dtmf?.digits}"`);
-            console.log("------------------------------");
-        } */
         if (activeTurn === "AUDIO" && data.recognitionResult?.isFinal) {
             console.log(`🗣️ User: "${data.recognitionResult.transcript}"`);
             isEnding = true; // 🛑 BLOCK WRITES NOW
