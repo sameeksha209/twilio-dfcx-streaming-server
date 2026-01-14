@@ -136,20 +136,26 @@ function startDtmfTurn(digit, callSid, streamSid, ws) {
     if (!canStartTurn()) return;
     activeTurn = "DTMF";
     isEnding = false;
- 
+
     dfcxStream = sessionClient.streamingDetectIntent();
     attachDfcxHandlers(callSid, streamSid, ws);
- 
+
     // THE FIX: Explicitly structure the QueryInput using the Proto definition
     // This prevents the SDK from stripping 'unknown' or 'default' fields.
+    // const queryInput = {
+    //     dtmf: {
+    //         digits: digit.toString(),
+    //         transformed: true // This is now locked into the Proto structure
+    //     },
+    //     languageCode: "en-US"
+    // };
     const queryInput = {
-        dtmf: {
-            digits: digit.toString(),
-            transformed: true // This is now locked into the Proto structure
+        "audioStreaming": {
+            "digits": digit,
+            // "finishDigit": "#"
         },
-        languageCode: "en-US"
-    };
- 
+        "languageCode": "en-US"
+    }
     const request = {
         session: createSessionPath(callSid),
         queryInput: queryInput,
@@ -158,7 +164,7 @@ function startDtmfTurn(digit, callSid, streamSid, ws) {
             sampleRateHertz: 8000,
         },
     };
- 
+
     console.log("🚀 FORCING PROTOBUF PACKET...");
     dfcxStream.write(request);
     dfcxStream.end();
