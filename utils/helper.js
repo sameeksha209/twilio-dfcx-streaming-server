@@ -120,6 +120,7 @@ function attachDfcxHandlers(callSid, streamSid, ws) {
     });
 
     dfcxStream.on("data", (data) => {
+        console.log('data',data)
         if (activeTurn === "AUDIO" && data.recognitionResult?.isFinal) {
             console.log(`🗣️ User: "${data.recognitionResult.transcript}"`);
             isEnding = true; // 🛑 BLOCK WRITES NOW
@@ -127,6 +128,7 @@ function attachDfcxHandlers(callSid, streamSid, ws) {
         }
 
         const outputAudio = data.detectIntentResponse?.outputAudio;
+        console.log('output audio', outputAudio);
         if (outputAudio?.length) {
             console.log("🔊 Bot is speaking...");
             sendAudioToTwilio(outputAudio, streamSid, ws);
