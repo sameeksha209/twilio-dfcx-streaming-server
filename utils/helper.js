@@ -118,7 +118,7 @@ function startDtmfTurn(digit, callSid, streamSid, ws) {
                 digits: "2",
                 transformed: true
             },
-            languageCode: "en-US",
+            languageCode: "en",
         },
         outputAudioConfig: {
             audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW",
