@@ -121,6 +121,8 @@ function attachDfcxHandlers(callSid, streamSid, ws) {
 
     dfcxStream.on("data", (data) => {
         console.log('data',data)
+        console.log(`🗣️ User: "${data.recognitionResult.transcript}"`);
+
         if (activeTurn === "AUDIO" && data.recognitionResult?.isFinal) {
             console.log(`🗣️ User: "${data.recognitionResult.transcript}"`);
             isEnding = true; // 🛑 BLOCK WRITES NOW
