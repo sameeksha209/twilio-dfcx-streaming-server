@@ -101,7 +101,7 @@ function startAudioTurn(callSid, streamSid, ws) {
     dfcxStream.end();
 } */
 
-function startDtmfTurn(digit, callSid, streamSid, ws) {
+/* function startDtmfTurn(digit, callSid, streamSid, ws) {
     if (!canStartTurn()) return;
     console.log(`DTMF INPUT → "${digit}"`);
     activeTurn = "DTMF";
@@ -128,6 +128,40 @@ function startDtmfTurn(digit, callSid, streamSid, ws) {
 
     console.log("📤 Sending DTMF Payload:", JSON.stringify(request.queryInput.dtmf));
     dfcxStream.write(request);
+    dfcxStream.end();
+} */
+
+function startDtmfTurn(digit, callSid, streamSid, ws) {
+    if (!canStartTurn()) return;
+    console.log(`🎯 DTMF TURN START → "${digit}"`);
+    activeTurn = "DTMF";
+    isEnding = false;
+ 
+    // Create the stream
+    dfcxStream = sessionClient.streamingDetectIntent();
+    attachDfcxHandlers(callSid, streamSid, ws);
+ 
+    // FIX: 1. Use the SAME language code as your Audio turn (en-US)
+    // FIX: 2. Ensure types are strictly defined
+    const request = {
+        session: createSessionPath(callSid),
+        queryInput: {
+            languageCode: "en-US", // Use en-US consistently
+            dtmf: {
+                digits: String(digit), // Convert to string safely
+                transformed: true      // Explicit Boolean
+            },
+        },
+        outputAudioConfig: {
+            audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW",
+            sampleRateHertz: 8000,
+        },
+    };
+ 
+    console.log("📤 Sending DTMF Payload to DFCX...");
+    // Write to stream
+    dfcxStream.write(request);
+    // IMPORTANT: End the stream so DFCX processes the "Final" intent match
     dfcxStream.end();
 }
 
