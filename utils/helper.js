@@ -1,6 +1,6 @@
 const { WaveFile } = require("wavefile");
 const { sessionClient, createSessionPath } = require("../dfcx/client");
-const { protos } = require('@google-cloud/dialogflow-cx');
+//const { protos } = require('@google-cloud/dialogflow-cx');
 // Global state for the current call session
 let dfcxStream = null;
 let activeTurn = null;
