@@ -330,11 +330,14 @@ module.exports = function (server) {
 const wss = new WebSocket.Server({ noServer: true });
 
   server.on("upgrade", (req, socket, head) => {
+    console.log('inside upgrading server')
     if (req.url === "/streaming") {
+          console.log("Handling WebSocket upgrade...");
       wss.handleUpgrade(req, socket, head, (ws) => {
         wss.emit("connection", ws, req);
       });
     } else {
+      console.log('inside error connection')
       socket.destroy();
     }
   });
@@ -347,6 +350,7 @@ const wss = new WebSocket.Server({ noServer: true });
 
       switch (json.event) {
         case "start":
+          console.log('json start event ', json.start)
           callSid = json.start.callSid;
           streamSid = json.start.streamSid;
           // Start the conversation with a welcome event
