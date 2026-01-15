@@ -17,6 +17,7 @@
 // module.exports = { mulawToPCM, pcmToMulaw };
 
 const mulaw = require("mulaw-js");
+const { WaveFile } = require("wavefile");
 
 // function mulawToPCM(mulawBytes) {
 //   // 1. Decode Mu-law to Int16Array
