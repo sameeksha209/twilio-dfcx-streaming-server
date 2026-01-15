@@ -326,8 +326,18 @@ const { mulawToPCM } = require("../utils/audio");
 const { startEventTurn, startAudioTurn, closeTurn, getDfcxStream, isAudioTurn } = require("../utils/helper");
 
 module.exports = function (server) {
-  const wss = new WebSocket.Server({ server, path: "/streaming" });
+  // const wss = new WebSocket.Server({ server, path: "/streaming" });
+const wss = new WebSocket.Server({ noServer: true });
 
+  server.on("upgrade", (req, socket, head) => {
+    if (req.url === "/streaming") {
+      wss.handleUpgrade(req, socket, head, (ws) => {
+        wss.emit("connection", ws, req);
+      });
+    } else {
+      socket.destroy();
+    }
+  });
   wss.on("connection", (ws) => {
     let callSid, streamSid;
 
