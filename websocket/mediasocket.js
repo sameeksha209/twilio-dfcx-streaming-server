@@ -38,7 +38,7 @@ module.exports = function (server) {
         startEventTurn("media", callSid, streamSid, ws);
         return;
       }
-      let audioTurnTimer = null;
+      // let audioTurnTimer = null;
 
       /* ---- AUDIO MEDIA ---- */
       if (json.event === "media") {
@@ -77,7 +77,7 @@ module.exports = function (server) {
       console.log(`🔢 Twilio Signal: ${digit}`);
 
       // 1. Immediately kill any current audio stream to free up the "Gate"
-      closeTurn();
+      closeTurn(callSid, streamSid, ws);
 
       // 2. Trigger the native DTMF turn
       //startDtmfTurn(digit, callSid, streamSid, ws);
@@ -90,13 +90,13 @@ module.exports = function (server) {
     /* ---- CALL END ---- */
     if (json.event === "stop") {
       console.log("📴 Call ended - Cleaning up");
-      closeTurn();
+      closeTurn(callSid, streamSid, ws);
     }
   });
 
   ws.on("close", () => {
     console.log("🔌 WebSocket closed");
-    closeTurn();
+    closeTurn(callSid, streamSid, ws);
   });
 });
 };

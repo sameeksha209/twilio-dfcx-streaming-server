@@ -100,6 +100,25 @@ function startDtmfTurn(digit, callSid, streamSid, ws) {
     dfcxStream.end();
 }
 
+function closeTurn(callSid, streamSid, ws) {
+    isEnding = true;
+
+    if (dfcxStream && !dfcxStream.writableEnded) {
+        dfcxStream.end();
+    }
+
+    dfcxStream = null;
+    activeTurn = null;
+
+    console.log("🔁 Turn closed");
+
+    // 🟢 IMMEDIATELY re-arm listening
+    if (ws && ws.readyState === ws.OPEN) {
+        startAudioTurn(callSid, streamSid, ws);
+    }
+}
+
+
 function closeTurn() {
     isEnding = true; // Stop any more writes immediately
     if (dfcxStream) {
@@ -145,7 +164,7 @@ function attachDfcxHandlers(callSid, streamSid, ws) {
     dfcxStream.on("error", (err) => {
         if (err.message.includes("write after end")) return;
         console.error("❌ DFCX Error:", err.message);
-        closeTurn();
+        closeTurn(callSid, streamSid, ws);
     });
 
     dfcxStream.on("data", (data) => {
@@ -173,7 +192,7 @@ function attachDfcxHandlers(callSid, streamSid, ws) {
                 
                 // IMPORTANT: Only close the turn AFTER we have processed the bot's response
                 setTimeout(() => {
-        closeTurn();
+        closeTurn(callSid, streamSid, ws);
     }, 50);
             }
         }
