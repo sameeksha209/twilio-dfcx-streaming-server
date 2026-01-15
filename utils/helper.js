@@ -226,71 +226,29 @@
 const { WaveFile } = require("wavefile");
 const { sessionClient, createSessionPath } = require("../dfcx/client");
 
-// Global state for the current call session
 let dfcxStream = null;
-let activeTurn = null;
+let activeTurn = null; 
 
-/**
- * Checks if the system is idle
- */
-function canStartTurn() {
-    return activeTurn === null;
+function getDfcxStream() { return dfcxStream; }
+function isAudioTurn() { return activeTurn === "AUDIO"; }
+
+function closeTurn() {
+    if (dfcxStream) {
+        dfcxStream.end();
+        dfcxStream = null; // IMPORTANT: Must reset to null
+    }
+    activeTurn = null;
+    console.log("🔁 Turn state reset");
 }
 
-/**
- * Getter to share the stream with the main socket file
- */
-function getDfcxStream() {
-    return dfcxStream;
-}
-
-/**
- * Getter to check if we are in Audio mode
- */
-function isAudioTurn() {
-    return activeTurn === "AUDIO";
-}
-
-/**
- * Triggers a Welcome or DTMF event
- */
-function startEventTurn(eventName, callSid, streamSid, ws) {
-    if (!canStartTurn()) return;
-
-    console.log(`🎯 EVENT TURN → ${eventName}`);
-    activeTurn = "EVENT";
-
-    dfcxStream = sessionClient.streamingDetectIntent();
-    attachDfcxHandlers(callSid, streamSid, ws);
-
-    dfcxStream.write({
-        session: createSessionPath(callSid),
-        queryInput: {
-            event: { event: eventName },
-            languageCode: "en-US",
-        },
-        outputAudioConfig: {
-            audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW",
-            sampleRateHertz: 8000,
-        },
-    });
-
-    // Events are one-shot: end the request side immediately
-    dfcxStream.end();
-}
-
-/**
- * Opens the pipe for human speech
- */
 function startAudioTurn(callSid, streamSid, ws) {
-    if (!canStartTurn()) return;
+    if (dfcxStream) return; // Don't start if already running
 
-    console.log("🎤 AUDIO TURN START");
+    console.log("🎤 AUDIO TURN STARTING...");
     activeTurn = "AUDIO";
-
     dfcxStream = sessionClient.streamingDetectIntent();
-    attachDfcxHandlers(callSid, streamSid, ws);
 
+    // 1. Send Initial Config
     dfcxStream.write({
         session: createSessionPath(callSid),
         queryInput: {
@@ -298,7 +256,7 @@ function startAudioTurn(callSid, streamSid, ws) {
                 config: {
                     audioEncoding: "AUDIO_ENCODING_LINEAR_16",
                     sampleRateHertz: 8000,
-                    singleUtterance: true,
+                    singleUtterance: true, // Stops listening after user pauses
                 },
             },
             languageCode: "en-US",
@@ -308,78 +266,222 @@ function startAudioTurn(callSid, streamSid, ws) {
             sampleRateHertz: 8000,
         },
     });
-}
 
-/**
- * Cleans up Google Stream and resets state
- */
-function closeTurn() {
-    if (dfcxStream) {
-        dfcxStream.end();
-        //dfcxStream = null;
-    }
-    activeTurn = null;
-    console.log("🔁 Turn closed");
-}
-
-/**
- * Listens to Google's response
- */
-function attachDfcxHandlers(callSid, streamSid, ws) {
-    if (!dfcxStream) return;
-
+    // 2. Attach Handlers
     dfcxStream.on("error", (err) => {
-        console.error("❌ DFCX Error:", err.message);
+        console.error("❌ DFCX Error:", err);
         closeTurn();
     });
 
     dfcxStream.on("data", (data) => {
-       console.log('data ----',data)
-        // 1. Handle Speech Detection
-        if (activeTurn === "AUDIO" && data.recognitionResult?.isFinal) {
-            console.log(`🗣️ User said: "${data.recognitionResult.transcript}"`);
-            dfcxStream.end();
+        console.log('inside data',data)
+        // Log partial transcripts to see if it's working in real-time
+        if (data.recognitionResult) {
+            console.log(`🗣️ Hearing: "${data.recognitionResult.transcript}" (Final: ${data.recognitionResult.isFinal})`);
         }
 
-        // 2. Handle Bot Audio Response
-        const outputAudio = data.detectIntentResponse?.outputAudio;
-        if (outputAudio?.length) {
-            console.log("🔊 Bot is speaking...");
-            sendAudioToTwilio(outputAudio, streamSid, ws);
-            closeTurn(); // Reset for next turn
+        const response = data.detectIntentResponse;
+        if (response && response.outputAudio) {
+            console.log("🔊 Sending Bot Response to Twilio");
+            sendAudioToTwilio(response.outputAudio, streamSid, ws);
+            // Note: We don't closeTurn here immediately if you want continuous convo, 
+            // but for simple Request/Response, we reset after audio is sent.
+            closeTurn();
         }
     });
 }
 
-/**
- * Sends audio back to the phone
- */
-function sendAudioToTwilio(outputAudio, streamSid, ws) {
-    try {
-        const wav = new WaveFile(outputAudio);
-        wav.toMuLaw();
-        const mulaw = Buffer.from(wav.getSamples());
-
-        const FRAME_SIZE = 160;
-        for (let i = 0; i < mulaw.length; i += FRAME_SIZE) {
-            ws.send(JSON.stringify({
-                event: "media",
-                streamSid,
-                media: {
-                    payload: mulaw.slice(i, i + FRAME_SIZE).toString("base64"),
-                },
-            }));
+function startEventTurn(eventName, callSid, streamSid, ws) {
+    activeTurn = "EVENT";
+    dfcxStream = sessionClient.streamingDetectIntent();
+    
+    // Set up handlers before writing
+    dfcxStream.on("data", (data) => {
+        const response = data.detectIntentResponse;
+        if (response && response.outputAudio) {
+            sendAudioToTwilio(response.outputAudio, streamSid, ws);
+            closeTurn();
         }
-    } catch (e) {
-        console.error("❌ Error sending audio:", e);
-    }
+    });
+
+    dfcxStream.write({
+        session: createSessionPath(callSid),
+        queryInput: { event: { event: eventName }, languageCode: "en-US" },
+        outputAudioConfig: { audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW", sampleRateHertz: 8000 }
+    });
 }
 
-module.exports = {
-    startEventTurn,
-    startAudioTurn,
-    closeTurn,
-    getDfcxStream,
-    isAudioTurn,
-    canStartTurn
-};
+function sendAudioToTwilio(outputAudio, streamSid, ws) {
+    // Dialogflow returns raw Mu-Law if requested in outputAudioConfig
+    // No need to use WaveFile to convert if encoding was set to MULAW
+    const base64Audio = Buffer.from(outputAudio).toString("base64");
+    
+    ws.send(JSON.stringify({
+        event: "media",
+        streamSid,
+        media: { payload: base64Audio }
+    }));
+}
+
+module.exports = { startEventTurn, startAudioTurn, closeTurn, getDfcxStream, isAudioTurn };
+
+// const { WaveFile } = require("wavefile");
+// const { sessionClient, createSessionPath } = require("../dfcx/client");
+
+// // Global state for the current call session
+// let dfcxStream = null;
+// let activeTurn = null;
+
+// /**
+//  * Checks if the system is idle
+//  */
+// function canStartTurn() {
+//     return activeTurn === null;
+// }
+
+// /**
+//  * Getter to share the stream with the main socket file
+//  */
+// function getDfcxStream() {
+//     return dfcxStream;
+// }
+
+// /**
+//  * Getter to check if we are in Audio mode
+//  */
+// function isAudioTurn() {
+//     return activeTurn === "AUDIO";
+// }
+
+// /**
+//  * Triggers a Welcome or DTMF event
+//  */
+// function startEventTurn(eventName, callSid, streamSid, ws) {
+//     if (!canStartTurn()) return;
+
+//     console.log(`🎯 EVENT TURN → ${eventName}`);
+//     activeTurn = "EVENT";
+
+//     dfcxStream = sessionClient.streamingDetectIntent();
+//     attachDfcxHandlers(callSid, streamSid, ws);
+
+//     dfcxStream.write({
+//         session: createSessionPath(callSid),
+//         queryInput: {
+//             event: { event: eventName },
+//             languageCode: "en-US",
+//         },
+//         outputAudioConfig: {
+//             audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW",
+//             sampleRateHertz: 8000,
+//         },
+//     });
+
+//     // Events are one-shot: end the request side immediately
+//     dfcxStream.end();
+// }
+
+// /**
+//  * Opens the pipe for human speech
+//  */
+// function startAudioTurn(callSid, streamSid, ws) {
+//     if (!canStartTurn()) return;
+
+//     console.log("🎤 AUDIO TURN START");
+//     activeTurn = "AUDIO";
+
+//     dfcxStream = sessionClient.streamingDetectIntent();
+//     attachDfcxHandlers(callSid, streamSid, ws);
+
+//     dfcxStream.write({
+//         session: createSessionPath(callSid),
+//         queryInput: {
+//             audio: {
+//                 config: {
+//                     audioEncoding: "AUDIO_ENCODING_LINEAR_16",
+//                     sampleRateHertz: 8000,
+//                     singleUtterance: true,
+//                 },
+//             },
+//             languageCode: "en-US",
+//         },
+//         outputAudioConfig: {
+//             audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW",
+//             sampleRateHertz: 8000,
+//         },
+//     });
+// }
+
+// /**
+//  * Cleans up Google Stream and resets state
+//  */
+// function closeTurn() {
+//     if (dfcxStream) {
+//         dfcxStream.end();
+//         //dfcxStream = null;
+//     }
+//     activeTurn = null;
+//     console.log("🔁 Turn closed");
+// }
+
+// /**
+//  * Listens to Google's response
+//  */
+// function attachDfcxHandlers(callSid, streamSid, ws) {
+//     if (!dfcxStream) return;
+
+//     dfcxStream.on("error", (err) => {
+//         console.error("❌ DFCX Error:", err.message);
+//         closeTurn();
+//     });
+
+//     dfcxStream.on("data", (data) => {
+//        console.log('data ----',data)
+//         // 1. Handle Speech Detection
+//         if (activeTurn === "AUDIO" && data.recognitionResult?.isFinal) {
+//             console.log(`🗣️ User said: "${data.recognitionResult.transcript}"`);
+//             dfcxStream.end();
+//         }
+
+//         // 2. Handle Bot Audio Response
+//         const outputAudio = data.detectIntentResponse?.outputAudio;
+//         if (outputAudio?.length) {
+//             console.log("🔊 Bot is speaking...");
+//             sendAudioToTwilio(outputAudio, streamSid, ws);
+//             closeTurn(); // Reset for next turn
+//         }
+//     });
+// }
+
+// /**
+//  * Sends audio back to the phone
+//  */
+// function sendAudioToTwilio(outputAudio, streamSid, ws) {
+//     try {
+//         const wav = new WaveFile(outputAudio);
+//         wav.toMuLaw();
+//         const mulaw = Buffer.from(wav.getSamples());
+
+//         const FRAME_SIZE = 160;
+//         for (let i = 0; i < mulaw.length; i += FRAME_SIZE) {
+//             ws.send(JSON.stringify({
+//                 event: "media",
+//                 streamSid,
+//                 media: {
+//                     payload: mulaw.slice(i, i + FRAME_SIZE).toString("base64"),
+//                 },
+//             }));
+//         }
+//     } catch (e) {
+//         console.error("❌ Error sending audio:", e);
+//     }
+// }
+
+// module.exports = {
+//     startEventTurn,
+//     startAudioTurn,
+//     closeTurn,
+//     getDfcxStream,
+//     isAudioTurn,
+//     canStartTurn
+// };

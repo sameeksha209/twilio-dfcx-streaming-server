@@ -237,85 +237,139 @@
 // };
 
 
-"use strict";
+// "use strict";
 
+// const WebSocket = require("ws");
+// const { mulawToPCM } = require("../utils/audio");
+// const {
+//   startEventTurn,
+//   startAudioTurn,
+//   closeTurn,
+//   getDfcxStream,
+//   isAudioTurn
+// } = require("../utils/helper");
+
+// module.exports = function (server) {
+//   const wss = new WebSocket.Server({ server, path: "/streaming" });
+
+//   wss.on("connection", (ws) => {
+//     console.log("✅ Twilio WebSocket connected");
+
+//     let callSid;
+//     let streamSid;
+
+//     ws.on("message", (msg) => {
+//       let json;
+//       try {
+//         json = JSON.parse(msg);
+//       } catch { return; }
+
+//       /* ---- CALL START ---- */
+//       if (json.event === "start") {
+//         callSid = json.start.callSid;
+//         streamSid = json.start.streamSid;
+//         console.log(`🚀 Call Started: ${callSid}`);
+
+//         // Trigger Welcome Greeting
+//         startEventTurn("media", callSid, streamSid, ws);
+//         return;
+//       }
+
+//       /* ---- AUDIO MEDIA ---- */
+//       if (json.event === "media") {
+//         // If nothing is happening, start a voice turn
+//         if (isAudioTurn() === false && getDfcxStream() === null) {
+//           startAudioTurn(callSid, streamSid, ws);
+//         }
+
+//         const currentStream = getDfcxStream();
+
+//         // ONLY forward if the helper is officially in AUDIO mode
+//         if (isAudioTurn() && currentStream) {
+//           const mulawBytes = Buffer.from(json.media.payload, "base64");
+//           const pcm = mulawToPCM(mulawBytes);
+
+//           if (pcm?.length) {
+//             currentStream.write({
+//               queryInput: { audio: { audio: pcm } },
+//             });
+//           }
+//         }
+//         return;
+//       }
+
+//       /* ---- DTMF ---- */
+//       if (json.event === "dtmf") {
+//         console.log(`🔢 DTMF: ${json.dtmf.digit}`);
+//         closeTurn(); // Stop current turn
+//         startEventTurn(`DTMF_${json.dtmf.digit}`, callSid, streamSid, ws);
+//         return;
+//       }
+
+//       /* ---- CALL END ---- */
+//       if (json.event === "stop") {
+//         console.log("📴 Call ended - Cleaning up");
+//         closeTurn();
+//       }
+//     });
+
+//     ws.on("close", () => {
+//       console.log("🔌 WebSocket closed");
+//       closeTurn();
+//     });
+//   });
+// };
+
+"use strict";
 const WebSocket = require("ws");
-const { mulawToPCM } = require("../utils/audio");
-const {
-  startEventTurn,
-  startAudioTurn,
-  closeTurn,
-  getDfcxStream,
-  isAudioTurn
-} = require("../utils/helper");
+const { mulawToPCM } = require("./utils/audio");
+const { startEventTurn, startAudioTurn, closeTurn, getDfcxStream, isAudioTurn } = require("./utils/helper");
 
 module.exports = function (server) {
   const wss = new WebSocket.Server({ server, path: "/streaming" });
 
   wss.on("connection", (ws) => {
-    console.log("✅ Twilio WebSocket connected");
-
-    let callSid;
-    let streamSid;
+    let callSid, streamSid;
 
     ws.on("message", (msg) => {
       let json;
-      try {
-        json = JSON.parse(msg);
-      } catch { return; }
+      try { json = JSON.parse(msg); } catch { return; }
 
-      /* ---- CALL START ---- */
-      if (json.event === "start") {
-        callSid = json.start.callSid;
-        streamSid = json.start.streamSid;
-        console.log(`🚀 Call Started: ${callSid}`);
+      switch (json.event) {
+        case "start":
+          callSid = json.start.callSid;
+          streamSid = json.start.streamSid;
+          // Start the conversation with a welcome event
+          startEventTurn("media", callSid, streamSid, ws);
+          break;
 
-        // Trigger Welcome Greeting
-        startEventTurn("media", callSid, streamSid, ws);
-        return;
-      }
-
-      /* ---- AUDIO MEDIA ---- */
-      if (json.event === "media") {
-        // If nothing is happening, start a voice turn
-        if (isAudioTurn() === false && getDfcxStream() === null) {
-          startAudioTurn(callSid, streamSid, ws);
-        }
-
-        const currentStream = getDfcxStream();
-
-        // ONLY forward if the helper is officially in AUDIO mode
-        if (isAudioTurn() && currentStream) {
-          const mulawBytes = Buffer.from(json.media.payload, "base64");
-          const pcm = mulawToPCM(mulawBytes);
-
-          if (pcm?.length) {
-            currentStream.write({
-              queryInput: { audio: { audio: pcm } },
-            });
+        case "media":
+          // If no stream is active, start one
+          if (!getDfcxStream()) {
+            startAudioTurn(callSid, streamSid, ws);
           }
-        }
-        return;
-      }
 
-      /* ---- DTMF ---- */
-      if (json.event === "dtmf") {
-        console.log(`🔢 DTMF: ${json.dtmf.digit}`);
-        closeTurn(); // Stop current turn
-        startEventTurn(`DTMF_${json.dtmf.digit}`, callSid, streamSid, ws);
-        return;
-      }
+          // Forward PCM audio to Google
+          const currentStream = getDfcxStream();
+          if (isAudioTurn() && currentStream) {
+            const pcm = mulawToPCM(Buffer.from(json.media.payload, "base64"));
+            if (pcm) {
+              currentStream.write({ queryInput: { audio: { audio: pcm } } });
+            }
+          }
+          break;
 
-      /* ---- CALL END ---- */
-      if (json.event === "stop") {
-        console.log("📴 Call ended - Cleaning up");
-        closeTurn();
+        case "dtmf":
+          closeTurn();
+          startEventTurn(`DTMF_${json.dtmf.digit}`, callSid, streamSid, ws);
+          break;
+
+        case "stop":
+          closeTurn();
+          break;
       }
     });
 
-    ws.on("close", () => {
-      console.log("🔌 WebSocket closed");
-      closeTurn();
-    });
+    ws.on("close", () => closeTurn());
   });
 };
