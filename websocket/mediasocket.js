@@ -322,7 +322,7 @@
 
 "use strict";
 const WebSocket = require("ws");
-const { mulawToPCM } = require("./utils/audio");
+const { mulawToPCM } = require("../utils/audio");
 const { startEventTurn, startAudioTurn, closeTurn, getDfcxStream, isAudioTurn } = require("./utils/helper");
 
 module.exports = function (server) {
