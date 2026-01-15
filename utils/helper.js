@@ -334,6 +334,7 @@ function attachDfcxHandlers(callSid, streamSid, ws) {
     });
 
     dfcxStream.on("data", (data) => {
+       console.log('data ----',data)
         // 1. Handle Speech Detection
         if (activeTurn === "AUDIO" && data.recognitionResult?.isFinal) {
             console.log(`🗣️ User said: "${data.recognitionResult.transcript}"`);
