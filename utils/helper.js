@@ -103,8 +103,8 @@ function startDtmfTurn(digit, callSid, streamSid, ws) {
 function closeTurn() {
     isEnding = true; // Stop any more writes immediately
     if (dfcxStream) {
-        dfcxStream.destroy(); // destroy is safer than end() for race conditions
-        dfcxStream = null;
+        dfcxStream.end(); // destroy is safer than end() for race conditions
+        // dfcxStream = null;
     }
     activeTurn = null;
     console.log("🔁 Turn closed");
@@ -172,7 +172,9 @@ function attachDfcxHandlers(callSid, streamSid, ws) {
                 sendAudioToTwilio(outputAudio, streamSid, ws);
                 
                 // IMPORTANT: Only close the turn AFTER we have processed the bot's response
-                closeTurn();
+                setTimeout(() => {
+        closeTurn();
+    }, 50);
             }
         }
     });

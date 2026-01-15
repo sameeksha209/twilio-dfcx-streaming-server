@@ -44,14 +44,14 @@ module.exports = function (server) {
       if (json.event === "media") {
         // If nothing is happening, start a voice turn
         if (isAudioTurn() === false && getDfcxStream() === null) {
-          if (!audioTurnTimer) {
-            audioTurnTimer = setTimeout(() => {
-              startAudioTurn(callSid, streamSid, ws);
-              audioTurnTimer = null;
-            }, 500); // 700–1200ms sweet spot
-          }
+          // if (!audioTurnTimer) {
+          //   audioTurnTimer = setTimeout(() => {
+          //     startAudioTurn(callSid, streamSid, ws);
+          //     audioTurnTimer = null;
+          //   }, 500); // 700–1200ms sweet spot
+          // }
         // }
-        // startAudioTurn(callSid, streamSid, ws);
+        startAudioTurn(callSid, streamSid, ws);
       }
 
       const currentStream = getDfcxStream();
