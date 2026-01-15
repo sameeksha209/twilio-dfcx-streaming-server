@@ -168,6 +168,7 @@ function attachDfcxHandlers(callSid, streamSid, ws) {
     });
 
     dfcxStream.on("data", (data) => {
+        console.log('data-----',data)
         // 1. Handle Recognition Results
         if (data.recognitionResult) {
             const transcript = data?.recognitionResult?.transcript;
@@ -175,11 +176,11 @@ function attachDfcxHandlers(callSid, streamSid, ws) {
               console.log('transcript and isFinal', transcript,isFinal)
             if (transcript) console.log(`🗣️ User: "${transcript}" ${isFinal ? '[FINAL]' : ''}`);
 
-            if (isFinal && activeTurn === "AUDIO") {
-                // We've heard the user, stop sending more audio from Twilio
-                isEnding = true; 
-                // Don't close the turn yet; we need to wait for the bot's response!
-            }
+            // if (isFinal && activeTurn === "AUDIO") {
+            //     // We've heard the user, stop sending more audio from Twilio
+            //     isEnding = true; 
+            //     // Don't close the turn yet; we need to wait for the bot's response!
+            // }
         }
 
         // 2. Handle the Bot's Response
