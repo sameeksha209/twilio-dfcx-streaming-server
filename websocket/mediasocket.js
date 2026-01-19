@@ -48,16 +48,20 @@ module.exports = function (server) {
               algorithms: ["HS256"],
               issuer: JWT_ISSUER,
               audience: JWT_AUDIENCE,
-              clockTolerance: 5,
+              // clockTolerance: 5,
             });
             console.log(decodedJWT)
-            //  if(decodedJWT)
-            // req.user = payload; // attach claims
+           if (decodedJWT.callSid !== callSid) {
+             ws.close(1008, "Token does not match call");
+             return;
+            }
             next();
           } catch (err) {
-            return res.status(401).json({
-              message: "Invalid or expired token",
-            });
+            console.log('error',err)
+            return err
+            // res.status(401).json({
+            //   message: "Invalid or expired token",
+            // });
           }
           // Start the conversation with a welcome event
           startEventTurn("media", callSid, streamSid, ws);
