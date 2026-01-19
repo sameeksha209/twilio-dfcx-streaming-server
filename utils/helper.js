@@ -291,7 +291,7 @@ function startAudioTurn(callSid, streamSid, ws) {
         if (response?.queryResult?.responseMessages) {
             console.log("--- ALL RESPONSE MESSAGES ---", JSON.stringify(response.queryResult.responseMessages, null, 2));
         }
-        if (response.sessionInfo?.parameters) {
+        if (response?.sessionInfo?.parameters) {
             console.log(" Session Parameters: ", JSON.stringify(response.sessionInfo.parameters.fields, null, 2));
         }
     });
