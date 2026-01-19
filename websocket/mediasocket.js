@@ -26,7 +26,7 @@ module.exports = function (server) {
     }
   });
   wss.on("connection", (ws) => {
-    let callSid, streamSid;
+    let callSid, streamSid, token;
 
     ws.on("message", (msg) => {
       let json;
