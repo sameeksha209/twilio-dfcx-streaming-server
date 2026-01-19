@@ -274,7 +274,7 @@ function startAudioTurn(callSid, streamSid, ws) {
     });
 
     dfcxStream.on("data", (data) => {
-        console.log('inside data',data)
+        console.log('inside data:', JSON.stringify(data, null, 2));
         // Log partial transcripts to see if it's working in real-time
         if (data.recognitionResult) {
             console.log(`🗣️ Hearing: "${data.recognitionResult.transcript}" (Final: ${data.recognitionResult.isFinal})`);
@@ -287,6 +287,12 @@ function startAudioTurn(callSid, streamSid, ws) {
             // Note: We don't closeTurn here immediately if you want continuous convo, 
             // but for simple Request/Response, we reset after audio is sent.
             closeTurn();
+        }
+        if (response?.queryResult?.responseMessages) {
+            console.log("--- ALL RESPONSE MESSAGES ---", JSON.stringify(response.queryResult.responseMessages, null, 2));
+        }
+        if (response.sessionInfo?.parameters) {
+            console.log(" Session Parameters: ", JSON.stringify(response.sessionInfo.parameters.fields, null, 2));
         }
     });
 }
