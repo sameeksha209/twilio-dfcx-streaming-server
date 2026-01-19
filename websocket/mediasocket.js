@@ -37,34 +37,39 @@ module.exports = function (server) {
           console.log('json start event ', json.start)
           callSid = json.start.callSid;
           streamSid = json.start.streamSid;
-          token = json.start.customParameters.token;
+          token = json.start.customParameters?.token;
           if (!token) {
             console.error("Missing token");
-            ws.close(1008, "Missing auth token"); // Policy violation
+            ws.close(1008, "Missing auth token");
             return;
           }
+
+          let decodedJWT;
           try {
-            const decodedJWT = jwt.verify(token, JWT_SECRET, {
+            decodedJWT = jwt.verify(token, JWT_SECRET, {
               algorithms: ["HS256"],
               issuer: JWT_ISSUER,
               audience: JWT_AUDIENCE,
-              // clockTolerance: 5,
             });
-            console.log(decodedJWT)
-           if (decodedJWT.callSid !== callSid) {
-             ws.close(1008, "Token does not match call");
-             return;
+
+            // Validate callSid
+            if (decodedJWT.callSid !== callSid) {
+              console.error("Token callSid mismatch");
+              ws.close(1008, "Token does not match call");
+              return;
             }
-            next();
+
+            // Save decoded JWT for later use
+            ws.user = decodedJWT;
+
+            // Start the conversation with a welcome event
+            startEventTurn("media", callSid, streamSid, ws);
           } catch (err) {
-            console.log('error',err)
-            return err
-            // res.status(401).json({
-            //   message: "Invalid or expired token",
-            // });
+            console.error("JWT verification failed:", err.message);
+            ws.close(1008, "Invalid or expired token");
+            return;
           }
-          // Start the conversation with a welcome event
-          startEventTurn("media", callSid, streamSid, ws);
+
           break;
 
         case "media":
