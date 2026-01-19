@@ -44,7 +44,7 @@ module.exports = function (server) {
             return;
           }
           try {
-            const decodedJWT = jwt.verify(accessToken, JWT_SECRET, {
+            const decodedJWT = jwt.verify(token, JWT_SECRET, {
               algorithms: ["HS256"],
               issuer: JWT_ISSUER,
               audience: JWT_AUDIENCE,
