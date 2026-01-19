@@ -330,14 +330,15 @@ module.exports = function (server) {
 const wss = new WebSocket.Server({ noServer: true });
 
   server.on("upgrade", (req, socket, head) => {
-    console.log('inside upgrading server')
-    if (req.url === "/streaming") {
-          console.log("Handling WebSocket upgrade...");
+    console.log('inside upgrading server', req.url, req.headers);
+    const pathname = req.url.split('?')[0];
+    if (pathname === "/streaming") {
+      console.log("Handling WebSocket upgrade...", req.url);
       wss.handleUpgrade(req, socket, head, (ws) => {
         wss.emit("connection", ws, req);
       });
     } else {
-      console.log('inside error connection')
+      console.log('inside error connection', req.url)
       socket.destroy();
     }
   });
