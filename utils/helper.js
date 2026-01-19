@@ -274,7 +274,7 @@ function startAudioTurn(callSid, streamSid, ws) {
     });
 
     dfcxStream.on("data", (data) => {
-        console.log('inside data:', JSON.stringify(data, null, 2));
+        console.log('inside data:', data);
         // Log partial transcripts to see if it's working in real-time
         if (data.recognitionResult) {
             console.log(`🗣️ Hearing: "${data.recognitionResult.transcript}" (Final: ${data.recognitionResult.isFinal})`);
