@@ -274,7 +274,7 @@ function startAudioTurn(callSid, streamSid, ws) {
     });
 
     dfcxStream.on("data", (data) => {
-        console.log('inside data:', data);
+        //console.log('inside data:', data);
 
         // Log partial transcripts to see if it's working in real-time
         if (data.recognitionResult) {
@@ -296,7 +296,7 @@ function startAudioTurn(callSid, streamSid, ws) {
 
         if (response?.queryResult?.responseMessages) {
             response.queryResult.responseMessages.forEach((msg, i) => {
-                console.log(`responseMessage[${i}] type:`, Object.keys(msg));
+                //console.log(`responseMessage[${i}] type:`, Object.keys(msg));
                 /* if (msg.payload?.fields) {
                     const payload = {};
 

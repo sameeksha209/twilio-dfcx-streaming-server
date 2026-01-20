@@ -61,12 +61,7 @@ module.exports = function (server) {
 
             // Save decoded JWT for later use
             ws.user = decodedJWT;
-            console.log("JWT payload:", ws.user); // this should have decoded Twilio info
-
-            // Example: ANI/DNIS/Language if passed in JWT
-            console.log("ANI:", ws.user?.ani);
-            console.log("DNIS:", ws.user?.dnis);
-            console.log("Language:", ws.user?.language);
+            //console.log("JWT payload:", ws.user); // this should have decoded Twilio info
 
             // Start the conversation with a welcome event
             startEventTurn("media", callSid, streamSid, ws);
