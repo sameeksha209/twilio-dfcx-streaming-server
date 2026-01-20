@@ -13,7 +13,7 @@ module.exports = function (server) {
   const wss = new WebSocket.Server({ noServer: true });
 
   server.on("upgrade", (req, socket, head) => {
-    console.log('inside upgrading server', req.url, req.headers);
+    //console.log('inside upgrading server', req.url, req.headers);
     const pathname = req.url.split('?')[0];
     if (pathname === "/streaming") {
       console.log("Handling WebSocket upgrade...", req.url);
