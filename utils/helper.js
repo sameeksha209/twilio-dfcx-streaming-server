@@ -289,9 +289,11 @@ function startAudioTurn(callSid, streamSid, ws) {
             // but for simple Request/Response, we reset after audio is sent.
             closeTurn();
         }
-        console.log('QueryResult:', response.queryResult);
-        console.log('Intent:', response.queryResult.intent?.displayName);
-        console.log('Parameters:',JSON.stringify(response.queryResult?.parameters, null, 2));
+        if (response.queryResult) {
+            console.log('Intent:', response?.queryResult?.intent?.displayName);
+            console.log('Parameters:', JSON.stringify(response?.queryResult?.parameters, null, 2));
+        }
+
         if (response?.queryResult?.responseMessages) {
             response.queryResult.responseMessages.forEach((msg, i) => {
                 if (msg.payload) {
