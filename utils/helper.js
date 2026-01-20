@@ -296,17 +296,23 @@ function startAudioTurn(callSid, streamSid, ws) {
 
         if (response?.queryResult?.responseMessages) {
             response.queryResult.responseMessages.forEach((msg, i) => {
-                if (msg.payload) {
-                    console.log(
-                        `Payload[${i}]:`,
-                        JSON.stringify(msg.payload.fields ?? msg.payload, null, 2)
-                    );
+            console.log(`responseMessage[${i}] type:`, Object.keys(msg));    
+                if (msg.payload?.fields) {
+                    const payload = {};
+
+                    for (const [key, val] of Object.entries(msg.payload.fields)) {
+                        payload[key] =
+                            val.stringValue ??
+                            val.numberValue ??
+                            val.boolValue ??
+                            null;
+                    }
+
+                    console.log(`CustomPayload[${i}]:`, JSON.stringify(payload));
                 }
             });
         }
-        if (response?.sessionInfo?.parameters) {
-            console.log(" Session Parameters: ", JSON.stringify(response.sessionInfo.parameters.fields, null, 2));
-        }
+
     });
 }
 
