@@ -292,6 +292,7 @@ function startAudioTurn(callSid, streamSid, ws) {
         if (response?.queryResult) {
             console.log('Intent:', response?.queryResult?.intent?.displayName);
             console.log('Parameters:', JSON.stringify(response?.queryResult?.parameters, null, 2));
+            console.log('matchEvent:', response?.queryResult?.match?.event);
         }
 
         if (response?.queryResult?.responseMessages) {
