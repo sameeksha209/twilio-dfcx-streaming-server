@@ -311,7 +311,27 @@ function startAudioTurn(callSid, streamSid, ws) {
                     console.log(`CustomPayload[${i}]:`, JSON.stringify(payload));
                 } */
                 if (msg.liveAgentHandoff) {
-                    console.log(`LiveAgentHandoff[${i}]:`,JSON.stringify(msg.liveAgentHandoff, null, 2));
+                    console.log(`LiveAgentHandoff[${i}]:`, JSON.stringify(msg.liveAgentHandoff, null, 2));
+                    console.log("☎️ Agent handoff requested");
+                    closeTurn();
+
+                    // 2. Stop Twilio Media Stream
+                    ws.send(JSON.stringify({ event: "stop" }));
+
+                    // 3. Redirect live call to agent (replace with your agent's phone number or client identity)
+                    try {
+                        twilioClient.calls(callSid).update({
+                            twiml: `
+<Response>
+<Say>Please wait while I connect you to an agent.</Say>
+<Dial>>+1555123456</Dial>
+</Response>
+                    `
+                        });
+                    } catch (err) {
+                        console.error("Error updating Twilio call for handoff:", err);
+                    }
+                    return;
                 }
             });
         }
