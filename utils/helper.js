@@ -186,11 +186,11 @@
 //         // 2. Handle the Bot's Response
 //         if (data.detectIntentResponse) {
 //             const outputAudio = data.detectIntentResponse.outputAudio;
-            
+
 //             if (outputAudio && outputAudio.length > 0) {
 //                 console.log("🔊 Bot is speaking, sending to Twilio...");
 //                 sendAudioToTwilio(outputAudio, streamSid, ws);
-                
+
 //                 // IMPORTANT: Only close the turn AFTER we have processed the bot's response
 //                 setTimeout(() => {
 //         closeTurn(callSid, streamSid, ws);
@@ -227,7 +227,7 @@ const { WaveFile } = require("wavefile");
 const { sessionClient, createSessionPath } = require("../dfcx/client");
 
 let dfcxStream = null;
-let activeTurn = null; 
+let activeTurn = null;
 
 function getDfcxStream() { return dfcxStream; }
 function isAudioTurn() { return activeTurn === "AUDIO"; }
@@ -275,6 +275,7 @@ function startAudioTurn(callSid, streamSid, ws) {
 
     dfcxStream.on("data", (data) => {
         console.log('inside data:', data);
+
         // Log partial transcripts to see if it's working in real-time
         if (data.recognitionResult) {
             console.log(`🗣️ Hearing: "${data.recognitionResult.transcript}" (Final: ${data.recognitionResult.isFinal})`);
@@ -288,8 +289,18 @@ function startAudioTurn(callSid, streamSid, ws) {
             // but for simple Request/Response, we reset after audio is sent.
             closeTurn();
         }
+        console.log('QueryResult:', response.queryResult);
+        console.log('Intent:', response.queryResult.intent?.displayName);
+        console.log('Parameters:',JSON.stringify(response.queryResult?.parameters, null, 2));
         if (response?.queryResult?.responseMessages) {
-            console.log("--- ALL RESPONSE MESSAGES ---", JSON.stringify(response.queryResult.responseMessages, null, 2));
+            response.queryResult.responseMessages.forEach((msg, i) => {
+                if (msg.payload) {
+                    console.log(
+                        `Payload[${i}]:`,
+                        JSON.stringify(msg.payload.fields ?? msg.payload, null, 2)
+                    );
+                }
+            });
         }
         if (response?.sessionInfo?.parameters) {
             console.log(" Session Parameters: ", JSON.stringify(response.sessionInfo.parameters.fields, null, 2));
@@ -300,7 +311,7 @@ function startAudioTurn(callSid, streamSid, ws) {
 function startEventTurn(eventName, callSid, streamSid, ws) {
     activeTurn = "EVENT";
     dfcxStream = sessionClient.streamingDetectIntent();
-    
+
     // Set up handlers before writing
     dfcxStream.on("data", (data) => {
         const response = data.detectIntentResponse;
@@ -321,7 +332,7 @@ function sendAudioToTwilio(outputAudio, streamSid, ws) {
     // Dialogflow returns raw Mu-Law if requested in outputAudioConfig
     // No need to use WaveFile to convert if encoding was set to MULAW
     const base64Audio = Buffer.from(outputAudio).toString("base64");
-    
+
     ws.send(JSON.stringify({
         event: "media",
         streamSid,
