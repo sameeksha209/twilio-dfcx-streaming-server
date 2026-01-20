@@ -296,8 +296,8 @@ function startAudioTurn(callSid, streamSid, ws) {
 
         if (response?.queryResult?.responseMessages) {
             response.queryResult.responseMessages.forEach((msg, i) => {
-            console.log(`responseMessage[${i}] type:`, Object.keys(msg));    
-                if (msg.payload?.fields) {
+                console.log(`responseMessage[${i}] type:`, Object.keys(msg));
+                /* if (msg.payload?.fields) {
                     const payload = {};
 
                     for (const [key, val] of Object.entries(msg.payload.fields)) {
@@ -309,6 +309,9 @@ function startAudioTurn(callSid, streamSid, ws) {
                     }
 
                     console.log(`CustomPayload[${i}]:`, JSON.stringify(payload));
+                } */
+                if (msg.liveAgentHandoff) {
+                    console.log(`LiveAgentHandoff[${i}]:`,JSON.stringify(msg.liveAgentHandoff, null, 2));
                 }
             });
         }
