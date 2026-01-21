@@ -38,6 +38,13 @@ function startAudioTurn(callSid, streamSid, ws) {
             },
             languageCode: "en-US",
         },
+        queryParams: {
+            parameters: {
+                ani: { stringValue: ws.customData.ani },
+                dnis: { stringValue: ws.customData.dnis },
+                language: { stringValue: ws.customData.language }
+            }
+        },
         outputAudioConfig: {
             audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW",
             sampleRateHertz: 8000,
@@ -50,7 +57,7 @@ function startAudioTurn(callSid, streamSid, ws) {
         closeTurn();
     });
 
-    dfcxStream.on("data", (data) => {
+    dfcxStream.on("data", async (data) => {
         //console.log('inside data:', data);
 
         // Log partial transcripts to see if it's working in real-time
@@ -76,46 +83,80 @@ function startAudioTurn(callSid, streamSid, ws) {
             console.log('matchEvent:', response?.queryResult?.match?.event);
         }
 
+        //         if (response?.queryResult?.responseMessages) {
+        //             response.queryResult.responseMessages.forEach((msg, i) => {
+        //                 //console.log(`responseMessage[${i}] type:`, Object.keys(msg));
+        //                 /* if (msg.payload?.fields) {
+        //                     const payload = {};
+
+        //                     for (const [key, val] of Object.entries(msg.payload.fields)) {
+        //                         payload[key] =
+        //                             val.stringValue ??
+        //                             val.numberValue ??
+        //                             val.boolValue ??
+        //                             null;
+        //                     }
+
+        //                     console.log(`CustomPayload[${i}]:`, JSON.stringify(payload));
+        //                 } */
+        //                 if (msg.liveAgentHandoff) {
+        //                     console.log(`LiveAgentHandoff[${i}]:`, JSON.stringify(msg.liveAgentHandoff, null, 2));
+        //                     console.log("☎️ Agent handoff requested");
+        //                     closeTurn();
+
+        //                     // 2. Stop Twilio Media Stream
+        //                     ws.send(JSON.stringify({ event: "stop" }));
+
+        //                     // 3. Redirect live call to agent (replace with your agent's phone number or client identity)
+        //                     try {
+        //                         twilioClient.calls(callSid).update({
+        //                             twiml: `
+        // <Response>
+        // <Say>Please wait while I connect you to an agent.</Say>
+        // <Dial>+13126464159</Dial>
+        // </Response>
+        //                     `
+        //                         });
+        //                     } catch (err) {
+        //                         console.error("Error updating Twilio call for handoff:", err);
+        //                     }
+        //                     return;
+        //                 }
+        //             });
+        //         }
         if (response?.queryResult?.responseMessages) {
-            response.queryResult.responseMessages.forEach((msg, i) => {
-                //console.log(`responseMessage[${i}] type:`, Object.keys(msg));
-                /* if (msg.payload?.fields) {
-                    const payload = {};
+            for (const msg of response.queryResult.responseMessages) {
+                if (!msg.liveAgentHandoff) continue;
 
-                    for (const [key, val] of Object.entries(msg.payload.fields)) {
-                        payload[key] =
-                            val.stringValue ??
-                            val.numberValue ??
-                            val.boolValue ??
-                            null;
-                    }
+                console.log("🚨 Handoff triggered by Dialogflow CX");
 
-                    console.log(`CustomPayload[${i}]:`, JSON.stringify(payload));
-                } */
-                if (msg.liveAgentHandoff) {
-                    console.log(`LiveAgentHandoff[${i}]:`, JSON.stringify(msg.liveAgentHandoff, null, 2));
-                    console.log("☎️ Agent handoff requested");
+                const metadata = msg.liveAgentHandoff.metadata?.fields || {};
+
+                const handoffPayload = {
+                    last_utterance: metadata.last_user_utterance?.stringValue,
+                    ani: ws.customData?.ani || metadata.ani?.stringValue,
+                    dnis: ws.customData?.dnis || metadata.dnis?.stringValue,
+                    language: ws.customData?.language || metadata.language?.stringValue
+                };
+                console.log('handoffPayload:', handoffPayload);
+                try {
+                    await twilioClient.calls(ws.callSid).update({
+                        method: "POST",
+                        url: `https://webhooks.twilio.com/v1/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Flows/${process.env.FLOW_SID}?Parameters=${encodeURIComponent(
+                            JSON.stringify(handoffPayload)
+                        )}`
+                    });
+
+                    console.log(`✅ Call ${ws.callSid} redirected to Studio Flow`);
+
                     closeTurn();
+                    ws.close();
 
-                    // 2. Stop Twilio Media Stream
-                    ws.send(JSON.stringify({ event: "stop" }));
-
-                    // 3. Redirect live call to agent (replace with your agent's phone number or client identity)
-                    try {
-                        twilioClient.calls(callSid).update({
-                            twiml: `
-<Response>
-<Say>Please wait while I connect you to an agent.</Say>
-<Dial>+13126464159</Dial>
-</Response>
-                    `
-                        });
-                    } catch (err) {
-                        console.error("Error updating Twilio call for handoff:", err);
-                    }
-                    return;
+                    break;
+                } catch (err) {
+                    console.error("Error updating Twilio call for handoff:", err);
                 }
-            });
+            }
         }
 
     });
