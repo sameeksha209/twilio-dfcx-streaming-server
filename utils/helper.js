@@ -126,39 +126,37 @@ function startAudioTurn(callSid, streamSid, ws) {
         //         }
         if (response?.queryResult?.responseMessages) {
             for (const msg of response.queryResult.responseMessages) {
-                if (!msg.liveAgentHandoff) continue;
+                if (msg.liveAgentHandoff) {
+                    console.log("🚨 Handoff triggered by Dialogflow CX");
 
-                console.log("🚨 Handoff triggered by Dialogflow CX");
+                    const metadata = msg.liveAgentHandoff.metadata?.fields || {};
+                    const handoffPayload = {
+                        last_utterance: metadata.last_user_utterance?.stringValue,
+                        ani: ws.customData?.ani || metadata.ani?.stringValue,
+                        dnis: ws.customData?.dnis || metadata.dnis?.stringValue,
+                        language: ws.customData?.language || metadata.language?.stringValue
+                    };
+                    console.log('handoffPayload:', handoffPayload);
+                    try {
+                        await twilioClient.calls(ws.callSid).update({
+                            method: "POST",
+                            url: `https://webhooks.twilio.com/v1/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Flows/${process.env.HANDOFF_FLOW_SID}?Parameters=${encodeURIComponent(
+                                JSON.stringify(handoffPayload)
+                            )}`
+                        });
 
-                const metadata = msg.liveAgentHandoff.metadata?.fields || {};
+                        console.log(`✅ Call ${ws.callSid} redirected to Studio Flow`);
 
-                const handoffPayload = {
-                    last_utterance: metadata.last_user_utterance?.stringValue,
-                    ani: ws.customData?.ani || metadata.ani?.stringValue,
-                    dnis: ws.customData?.dnis || metadata.dnis?.stringValue,
-                    language: ws.customData?.language || metadata.language?.stringValue
-                };
-                console.log('handoffPayload:', handoffPayload);
-                try {
-                    await twilioClient.calls(ws.callSid).update({
-                        method: "POST",
-                        url: `https://webhooks.twilio.com/v1/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Flows/${process.env.HANDOFF_FLOW_SID}?Parameters=${encodeURIComponent(
-                            JSON.stringify(handoffPayload)
-                        )}`
-                    });
+                        closeTurn();
+                        ws.close();
 
-                    console.log(`✅ Call ${ws.callSid} redirected to Studio Flow`);
-
-                    closeTurn();
-                    ws.close();
-
-                    break;
-                } catch (err) {
-                    console.error("Error updating Twilio call for handoff:", err);
+                        break;
+                    } catch (err) {
+                        console.error("Error updating Twilio call for handoff:", err);
+                    }
                 }
             }
         }
-
     });
 }
 
