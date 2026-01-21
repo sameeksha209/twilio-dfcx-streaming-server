@@ -214,7 +214,7 @@ function startAudioTurn(callSid, streamSid, ws) {
                 config: {
                     audioEncoding: "AUDIO_ENCODING_LINEAR_16",
                     sampleRateHertz: 8000,
-                    singleUtterance: true, 
+                    singleUtterance: true,
                 },
             },
             languageCode: "en-US",
@@ -244,7 +244,6 @@ function startAudioTurn(callSid, streamSid, ws) {
         }
 
         const response = data.detectIntentResponse;
-
         const responseMessages = response?.queryResult?.responseMessages || [];
         const handoffMsg = responseMessages.find(msg => msg.liveAgentHandoff);
 
@@ -252,7 +251,7 @@ function startAudioTurn(callSid, streamSid, ws) {
         if (response && response.outputAudio) {
             console.log("🔊 Sending Bot Response to Twilio");
             sendAudioToTwilio(response.outputAudio, streamSid, ws);
-            
+
             // Only close turn immediately if this is NOT a handoff.
             if (!handoffMsg) {
                 closeTurn();
@@ -271,13 +270,13 @@ function startAudioTurn(callSid, streamSid, ws) {
 
             try {
                 const metadata = handoffMsg.liveAgentHandoff.metadata?.fields || {};
-                
+
                 // Construct the JSON payload for the Mark Name
                 const handoffPayload = {
                     last_utterance: metadata.last_user_utterance?.stringValue || "Handoff requested",
-                    ani: ws.customData?.ani || metadata.ani?.stringValue || "unknown",
-                    dnis: ws.customData?.dnis || metadata.dnis?.stringValue || "unknown",
-                    language: ws.customData?.language || "en-US",
+                    ani: metadata.ani?.stringValue || "unknown",
+                    dnis: metadata.dnis?.stringValue || "unknown",
+                    language: metadata.language?.stringValue || "en-US",
                     callSid: callSid
                 };
 
@@ -293,18 +292,10 @@ function startAudioTurn(callSid, streamSid, ws) {
                     }
                 }));
 
-                // 4. Cleanup Sequence
-                // We wait 2.5 seconds to ensure the 'mark' is logged and the 'media' is heard
+                ws.send(JSON.stringify({ event: "stop" }));
+                closeTurn();
                 setTimeout(() => {
-                    console.log("🧼 Cleaning up stream for Redirect...");
-                    
-                    // Reset DFCX state
-                    closeTurn();
-                    
-                    // Stop the Twilio Media Stream
-                    ws.send(JSON.stringify({ event: "stop" }));
-
-                    // Close the WebSocket connection
+                    console.log("closing socket connection");
                     ws.close();
                 }, 2500);
 
