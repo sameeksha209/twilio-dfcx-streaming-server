@@ -137,24 +137,25 @@ function startAudioTurn(callSid, streamSid, ws) {
                         language: ws.customData?.language || metadata.language?.stringValue
                     };
                     console.log('handoffPayload:', handoffPayload);
-                    try {
-                        ws.send(JSON.stringify({ event: "stop" }));
 
-                        await twilioClient.calls(callSid).update({
-                            method: "POST",
-                            url: `https://webhooks.twilio.com/v1/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Flows/${process.env.HANDOFF_FLOW_SID}?Parameters=${encodeURIComponent(
-                                JSON.stringify(handoffPayload)
-                            )}`
-                        });
+                    setTimeout(async () => {
+                        try {
+                            ws.send(JSON.stringify({ event: "stop" }));
 
-                        console.log(`✅ Call ${callSid} redirected to Studio Flow`);
+                            await twilioClient.calls(callSid).update({
+                                method: "POST",
+                                url: `https://webhooks.twilio.com/v1/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Flows/${process.env.HANDOFF_FLOW_SID}?Parameters=${encodeURIComponent(
+                                    JSON.stringify(handoffPayload)
+                                )}`
+                            });
 
-                        closeTurn();
-                        ws.close();
-                        break;
-                    } catch (err) {
-                        console.error("Error updating Twilio call for handoff:", err);
-                    }
+                            console.log(`✅ Call ${callSid} redirected to Studio Flow`);
+                            closeTurn();
+                            ws.close();
+                        } catch (err) {
+                            console.error("Error updating Twilio call for handoff:", err);
+                        }
+                    }, 1000); //1 sec delay ensures audio plays first
                 }
             }
         }
