@@ -163,19 +163,35 @@ function startAudioTurn(callSid, streamSid, ws) {
         if (response?.queryResult?.responseMessages) {
             for (const msg of response.queryResult.responseMessages) {
                 if (msg.liveAgentHandoff) {
-                    console.log("🚨 TEST: Handoff signal detected! Calling Webhook...");
+                    console.log("🚨 Handoff signal detected! Calling Webhook...");
 
                     try {
                         const testPayload = {
                             callSid: callSid,
-                            status_trigger: "TEST_HANDOFF_TRIGGER"
+                            status_trigger: "HANDOFF_TRIGGER"
                         };
 
+                        // 1. Call the webhook
                         const webhookResponse = await axios.post('https://csrservice-7670-dev.twil.io/checkCallbackStatus', testPayload);
-
                         console.log('✅ WEBHOOK TEST SUCCESS:', webhookResponse.status, webhookResponse.data);
+
+                        // 2. WAIT slightly for the bot's "Transferring you" audio to finish playing
+                        setTimeout(() => {
+                            console.log("🧼 Cleaning up stream to allow Twilio to Redirect...");
+
+                            // 3. Close the Dialogflow Stream
+                            closeTurn();
+
+                            // 4. IMPORTANT: Tell Twilio to stop the Media Stream
+                            // This allows the <Redirect> TwiML from the webhook to take control
+                            ws.send(JSON.stringify({ event: "stop" }));
+
+                            // 5. Close the local WebSocket
+                            ws.close();
+                        }, 2000);
+
                     } catch (error) {
-                        console.error('❌ WEBHOOK TEST FAILED:', error.message);
+                        console.error('❌ WEBHOOK FAILED:', error.message);
                     }
                 }
             }
