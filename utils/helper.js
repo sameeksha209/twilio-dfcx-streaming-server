@@ -138,14 +138,14 @@ function startAudioTurn(callSid, streamSid, ws) {
                     };
                     console.log('handoffPayload:', handoffPayload);
                     try {
-                        await twilioClient.calls(ws.callSid).update({
+                        await twilioClient.calls(callSid).update({
                             method: "POST",
                             url: `https://webhooks.twilio.com/v1/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Flows/${process.env.HANDOFF_FLOW_SID}?Parameters=${encodeURIComponent(
                                 JSON.stringify(handoffPayload)
                             )}`
                         });
 
-                        console.log(`✅ Call ${ws.callSid} redirected to Studio Flow`);
+                        console.log(`✅ Call ${callSid} redirected to Studio Flow`);
 
                         closeTurn();
                         ws.close();
