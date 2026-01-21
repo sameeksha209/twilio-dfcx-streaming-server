@@ -140,7 +140,7 @@ function startAudioTurn(callSid, streamSid, ws) {
                     const params = new URLSearchParams(handoffPayload).toString();
                     const studioUrl = `https://webhooks.twilio.com/v1/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Flows/${process.env.HANDOFF_FLOW_SID}?${params}`;
                     console.log("🔗 Redirecting to Studio URL:", studioUrl);
-
+                    closeTurn();
                     setTimeout(async () => {
                         try {
                             ws.send(JSON.stringify({ event: "stop" }));
@@ -151,8 +151,6 @@ function startAudioTurn(callSid, streamSid, ws) {
                             });
 
                             console.log(`✅ Call ${callSid} redirected to Studio Flow`);
-                            closeTurn();
-                            ws.close();
                         } catch (err) {
                             console.error("Error updating Twilio call for handoff:", err);
                         }
