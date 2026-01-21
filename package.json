@@ -19,6 +19,7 @@
   "homepage": "https://github.com/sameeksha209/twilio-dfcx-streaming-server#readme",
   "dependencies": {
     "@google-cloud/dialogflow-cx": "^5.5.0",
+    "axios": "^1.13.2",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
