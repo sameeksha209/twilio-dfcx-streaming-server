@@ -137,7 +137,7 @@ function startAudioTurn(callSid, streamSid, ws) {
                         language: ws.customData?.language || metadata.language?.stringValue
                     };
                     console.log('handoffPayload:', handoffPayload);
-                    const params = new URLSearchParams(handoffData).toString();
+                    const params = new URLSearchParams(handoffPayload).toString();
                     const studioUrl = `https://webhooks.twilio.com/v1/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Flows/${process.env.HANDOFF_FLOW_SID}?${params}`;
                     console.log("🔗 Redirecting to Studio URL:", studioUrl);
 
