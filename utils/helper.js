@@ -142,7 +142,7 @@ function startAudioTurn(callSid, streamSid, ws) {
                 try {
                     await twilioClient.calls(ws.callSid).update({
                         method: "POST",
-                        url: `https://webhooks.twilio.com/v1/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Flows/${process.env.FLOW_SID}?Parameters=${encodeURIComponent(
+                        url: `https://webhooks.twilio.com/v1/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Flows/${process.env.HANDOFF_FLOW_SID}?Parameters=${encodeURIComponent(
                             JSON.stringify(handoffPayload)
                         )}`
                     });
