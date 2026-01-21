@@ -138,6 +138,8 @@ function startAudioTurn(callSid, streamSid, ws) {
                     };
                     console.log('handoffPayload:', handoffPayload);
                     try {
+                        ws.send(JSON.stringify({ event: "stop" }));
+
                         await twilioClient.calls(callSid).update({
                             method: "POST",
                             url: `https://webhooks.twilio.com/v1/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Flows/${process.env.HANDOFF_FLOW_SID}?Parameters=${encodeURIComponent(
@@ -149,7 +151,6 @@ function startAudioTurn(callSid, streamSid, ws) {
 
                         closeTurn();
                         ws.close();
-
                         break;
                     } catch (err) {
                         console.error("Error updating Twilio call for handoff:", err);
