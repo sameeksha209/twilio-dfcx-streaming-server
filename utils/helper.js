@@ -273,10 +273,11 @@ function startAudioTurn(callSid, streamSid, ws) {
 
                 // Construct the JSON payload for the Mark Name
                 const handoffPayload = {
-                    last_utterance: metadata.last_user_utterance?.stringValue || "Handoff requested",
-                    ani: metadata.ani?.stringValue || "unknown",
-                    dnis: metadata.dnis?.stringValue || "unknown",
-                    language: metadata.language?.stringValue || "en-US",
+                    last_utterance: metadata.last_user_utterance?.stringValue,
+                    ani: ws.customData?.ani || metadata.ani?.stringValue,
+                    dnis: ws.customData?.dnis || metadata.dnis?.stringValue,
+                    language: ws.customData?.language || metadata.language?.stringValue,
+                    last_open_intent: response?.queryResult?.intent?.displayName,
                     callSid: callSid
                 };
 
@@ -291,6 +292,9 @@ function startAudioTurn(callSid, streamSid, ws) {
                         name: customDataString
                     }
                 }));
+
+                const webhookResponse = await axios.post('https://csrservice-7670-dev.twil.io/checkCallbackStatus', handoffPayload);
+                console.log('✅ WEBHOOK TEST SUCCESS:', webhookResponse.status, webhookResponse.data);
 
                 ws.send(JSON.stringify({ event: "stop" }));
                 closeTurn();
