@@ -99,6 +99,8 @@ module.exports = function (server) {
 
         case "stop":
           closeTurn();
+          console.log('Stream stopped for Call SID:', json?.stop?.callSid);
+          ws.send(JSON.stringify({ status: 'received stop event', callSid: json.stop.callSid }));
           break;
       }
     });
