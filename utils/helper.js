@@ -298,10 +298,10 @@ function startAudioTurn(callSid, streamSid, ws) {
 
                 ws.send(JSON.stringify({ event: "stop" }));
                 closeTurn();
-                setTimeout(() => {
-                    console.log("closing socket connection");
-                    ws.close();
-                }, 2500);
+                // setTimeout(() => {
+                //     console.log("closing socket connection");
+                //     ws.close();
+                // }, 2500);
 
             } catch (error) {
                 console.error('❌ Failed to process Mark Event:', error.message);
