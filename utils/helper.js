@@ -281,27 +281,27 @@ function startAudioTurn(callSid, streamSid, ws) {
                     callSid: callSid
                 };
 
-                const customDataString = JSON.stringify(handoffPayload);
-                console.log('🚀 Sending Mark Name:', customDataString);
+                // const customDataString = JSON.stringify(handoffPayload);
+                // console.log('🚀 Sending Mark Name:', customDataString);
 
-                // 3. Send the Mark inside the 'name' field
-                ws.send(JSON.stringify({
-                    event: "mark",
-                    streamSid: streamSid,
-                    mark: {
-                        name: customDataString
-                    }
-                }));
+                // // 3. Send the Mark inside the 'name' field
+                // ws.send(JSON.stringify({
+                //     event: "mark",
+                //     streamSid: streamSid,
+                //     mark: {
+                //         name: customDataString
+                //     }
+                // }));
 
                 const webhookResponse = await axios.post('https://csrservice-7670-dev.twil.io/checkCallbackStatus', handoffPayload);
                 console.log('✅ WEBHOOK TEST SUCCESS:', webhookResponse.status, webhookResponse.data);
 
-                ws.send(JSON.stringify({ event: "stop" }));
-                closeTurn();
-                setTimeout(() => {
-                    console.log("closing socket connection");
-                    ws.close();
-                }, 3500);
+                // ws.send(JSON.stringify({ event: "stop" }));
+                // closeTurn();
+                // setTimeout(() => {
+                //     console.log("closing socket connection");
+                //     ws.close();
+                // }, 3500);
 
             } catch (error) {
                 console.error('❌ Failed to process Mark Event:', error.message);
