@@ -240,11 +240,13 @@ function startAudioTurn(callSid, streamSid, ws) {
     });
 
     dfcxStream.on("data", async (data) => {
+        console.log('data:: ', data);
         if (data.recognitionResult) {
             console.log(`🗣️ Hearing: "${data.recognitionResult.transcript}" (Final: ${data.recognitionResult.isFinal})`);
         }
 
         const response = data.detectIntentResponse;
+        console.log('detectIntentResponse:: ', response);
         const responseMessages = response?.queryResult?.responseMessages || [];
         const handoffMsg = responseMessages.find(msg => msg.liveAgentHandoff);
 
