@@ -98,10 +98,15 @@ module.exports = function (server) {
           break;
 
         case "stop":
-          closeTurn();
           console.log('Stream stopped for Call SID:', json?.stop?.callSid);
-          ws.send(JSON.stringify({ status: 'received stop event', callSid: json.stop.callSid }));
+          closeTurn();
+          // Gracefully close WebSocket
+          if (ws.readyState === ws.OPEN) {
+            console.log('closing ws connection...')
+            ws.close(1000, "Twilio stream stopped");
+          }
           break;
+
       }
     });
 

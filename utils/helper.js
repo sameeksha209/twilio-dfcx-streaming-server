@@ -19,6 +19,7 @@ function closeTurn() {
     console.log("🔁 Turn state reset");
 }
 
+
 // function startAudioTurn(callSid, streamSid, ws) {
 //     if (dfcxStream) return; // Don't start if already running
 
@@ -266,7 +267,7 @@ function startAudioTurn(callSid, streamSid, ws) {
 
         // --- HANDLE HANDOFF & MARK EVENT ---
         if (handoffMsg) {
-            console.log("🚨 Handoff signal detected! Packing JSON into Mark...");
+            console.log("🚨 Handoff signal detected!");
 
             try {
                 const metadata = handoffMsg.liveAgentHandoff.metadata?.fields || {};
@@ -296,15 +297,16 @@ function startAudioTurn(callSid, streamSid, ws) {
                 const webhookResponse = await axios.post('https://csrservice-7670-dev.twil.io/checkCallbackStatus', handoffPayload);
                 console.log('✅ WEBHOOK TEST SUCCESS:', webhookResponse.status, webhookResponse.data);
 
-                // ws.send(JSON.stringify({ event: "stop" }));
-                // closeTurn();
+                ws.send(JSON.stringify({ event: "stop" }));
+                console.log('Sream stopped');
+                closeTurn();
                 // setTimeout(() => {
                 //     console.log("closing socket connection");
                 //     ws.close();
                 // }, 3500);
 
             } catch (error) {
-                console.error('❌ Failed to process Mark Event:', error.message);
+                console.error('❌ Failed to process webhook call:', error.message);
             }
         }
     });
