@@ -10,10 +10,6 @@ function isAudioTurn(state) {
 }
 
 function closeTurn(state) {
-    if (!state || state.turnClosed) return;
-
-    state.turnClosed = true;
-
     try {
         if (state.dfcxStream) {
             state.dfcxStream.end();
@@ -25,20 +21,21 @@ function closeTurn(state) {
 
     state.dfcxStream = null;
     state.activeTurn = null;
+    state.turnClosed = false;
 
     console.log("🔁 Turn state reset");
 }
 
 function startAudioTurn(callSid, streamSid, ws) {
     const state = ws.callState;
-    if (state.dfcxStream || state.turnClosed) {
+    if (state.dfcxStream) {
         //console.warn(`[${callSid}] ⚠️ AUDIO TURN SKIPPED: Already running or closed`);
         return;
     }
 
     console.log(`[${callSid}] 🎤 AUDIO TURN START`);
     state.activeTurn = "AUDIO";
-    state.turnClosed = false;
+    //state.turnClosed = false;
 
     const dfcxStream = sessionClient.streamingDetectIntent();
     state.dfcxStream = dfcxStream;
