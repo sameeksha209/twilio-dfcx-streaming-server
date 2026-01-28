@@ -28,8 +28,8 @@ function closeTurn(state) {
 
 function startAudioTurn(callSid, streamSid, ws) {
     const state = ws.callState;
-    if (state.dfcxStream) {
-        //console.warn(`[${callSid}] ⚠️ AUDIO TURN SKIPPED: Already running or closed`);
+
+    if (state.dfcxStream || ws.callState.streamEnded) {
         return;
     }
 
@@ -113,6 +113,7 @@ function startAudioTurn(callSid, streamSid, ws) {
                 };
                 const webhookResponse = await axios.post('https://csrservice-7670-dev.twil.io/checkCallbackStatus', handoffPayload);
                 console.log(`[${callSid}] 🚨 HANDOFF SENT SUCCESSFULLY:`, webhookResponse.status, webhookResponse.data);
+                ws.callState.streamEnded = true;
                 ws.send(JSON.stringify({ event: "stop" }));
                 console.log('Sream stopped');
                 closeTurn(state);
