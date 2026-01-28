@@ -8,7 +8,7 @@ const {
   closeTurn,
   getDfcxStream,
   isAudioTurn,
-} = require("./helper");
+} = require("../utils/helper");
 
 const {
   JWT_SECRET,
