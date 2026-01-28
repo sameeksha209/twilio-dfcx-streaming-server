@@ -249,6 +249,7 @@ function startAudioTurn(callSid, streamSid, ws) {
         console.log('detectIntentResponse:: ', response);
         const responseMessages = response?.queryResult?.responseMessages || [];
         const handoffMsg = responseMessages.find(msg => msg.liveAgentHandoff);
+        console.log(JSON.stringify(responseMessages));
 
         // --- HANDLE AUDIO OUTPUT ---
         if (response && response.outputAudio) {
