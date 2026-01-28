@@ -119,9 +119,9 @@ module.exports = function (server) {
             const pcm = mulawToPCM(Buffer.from(json.media.payload, "base64"));
             if (pcm) {
               stream.write({ queryInput: { audio: { audio: pcm } } });
-              console.log(
-                `[${callSid}] Forwarded PCM audio to Dialogflow CX, length: ${pcm.length}`
-              );
+              // console.log(
+              //   `[${callSid}] Forwarded PCM audio to Dialogflow CX, length: ${pcm.length}`
+              // );
             }
           }
           break;
