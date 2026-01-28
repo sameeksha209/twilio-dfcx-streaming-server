@@ -110,7 +110,7 @@ module.exports = function (server) {
           if (ws.callState.streamEnded) return;
 
           if (!getDfcxStream(ws.callState)) {
-            console.log(`[${callSid}] Starting audio turn`);
+            //console.log(`[${callSid}] Starting audio turn`);
             startAudioTurn(callSid, streamSid, ws);
           }
 

@@ -32,7 +32,7 @@ function closeTurn(state) {
 function startAudioTurn(callSid, streamSid, ws) {
     const state = ws.callState;
     if (state.dfcxStream || state.turnClosed) {
-        console.warn(`[${callSid}] ⚠️ AUDIO TURN SKIPPED: Already running or closed`);
+        //console.warn(`[${callSid}] ⚠️ AUDIO TURN SKIPPED: Already running or closed`);
         return;
     }
 
@@ -129,7 +129,7 @@ function startAudioTurn(callSid, streamSid, ws) {
 function startEventTurn(eventName, callSid, streamSid, ws) {
     const state = ws.callState;
     if (state.turnClosed) {
-        console.warn(`[${callSid}] ⚠️ EVENT TURN SKIPPED: Turn already closed`);
+        //console.warn(`[${callSid}] ⚠️ EVENT TURN SKIPPED: Turn already closed`);
         return;
     }
 
@@ -166,7 +166,7 @@ function startEventTurn(eventName, callSid, streamSid, ws) {
 
 function sendAudioToTwilio(outputAudio, streamSid, ws) {
     if (ws.readyState !== ws.OPEN) {
-        console.warn("⚠️ Cannot send audio, WebSocket not open");
+        //console.warn("⚠️ Cannot send audio, WebSocket not open");
         return;
     }
 
