@@ -320,8 +320,10 @@ function startAudioTurn(callSid, streamSid, ws) {
             try {
                 const ccHandoffPayload = {
                     last_open_intent: intent,
-                    callSid: callSid
+                    callSid: callSid,
+                    token: ws.customData?.token
                 };
+                console.log('ccHandoffPayload:', JSON.stringify(ccHandoffPayload));
                 const webhookResponse = await axios.post('https://csrservice-7670-dev.twil.io/checkCallbackStatus', ccHandoffPayload);
                 console.log('✅AddCardCC WEBHOOK TEST SUCCESS:', webhookResponse.status, webhookResponse.data);
                 ws.send(JSON.stringify({ event: "stop" }));

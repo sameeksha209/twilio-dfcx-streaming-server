@@ -62,7 +62,7 @@ module.exports = function (server) {
             const ani = json.start.customParameters?.ani;
             const dnis = json.start.customParameters?.dnis;
             const language = json.start.customParameters?.language;
-            ws.customData = { ani, dnis, language };
+            ws.customData = { ani, dnis, language, token };
             console.log('custom data: ', ws.customData);
             // Start the conversation with a welcome event
             startEventTurn("media", callSid, streamSid, ws);
