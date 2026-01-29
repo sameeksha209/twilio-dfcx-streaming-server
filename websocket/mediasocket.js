@@ -32,7 +32,7 @@ module.exports = function (server) {
 
       switch (json.event) {
         case "start":
-          console.log('json start event ', json.start)
+          console.log('json start event ', JSON.stringify(json.start));
           callSid = json.start.callSid;
           streamSid = json.start.streamSid;
           token = json.start.customParameters?.token;
