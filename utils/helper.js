@@ -245,12 +245,9 @@ function startAudioTurn(callSid, streamSid, ws) {
         }
 
         const response = data.detectIntentResponse;
-        if (response) {
-            console.log('data:: ', JSON.stringify(data));
-        }
         const responseMessages = response?.queryResult?.responseMessages || [];
-        console.log('responseMessages: ', JSON.stringify(responseMessages));
         const handoffMsg = responseMessages.find(msg => msg.liveAgentHandoff);
+        const intent = response?.queryResult?.intent?.displayName;
 
         // --- HANDLE AUDIO OUTPUT ---
         if (response && response.outputAudio) {
@@ -265,7 +262,7 @@ function startAudioTurn(callSid, streamSid, ws) {
 
         // --- LOGGING FOR DEBUGGING ---
         if (response?.queryResult) {
-            console.log('Intent:', response?.queryResult?.intent?.displayName);
+            console.log('Intent:', intent);
             console.log('matchEvent:', response?.queryResult?.match?.event);
         }
 
@@ -309,6 +306,23 @@ function startAudioTurn(callSid, streamSid, ws) {
                 //     ws.close();
                 // }, 3500);
 
+            } catch (error) {
+                console.error('❌ Failed to process webhook call:', error.message);
+            }
+        }
+
+        if (intent === "Add Card") {
+            console.log("🚨 add card detected!");
+            try {
+                const ccHandoffPayload = {
+                    last_open_intent: intent,
+                    callSid: callSid
+                };
+                const webhookResponse = await axios.post('https://csrservice-7670-dev.twil.io/checkCallbackStatus', ccHandoffPayload);
+                console.log('✅AddCardCC WEBHOOK TEST SUCCESS:', webhookResponse.status, webhookResponse.data);
+                ws.send(JSON.stringify({ event: "stop" }));
+                console.log('Sream stopped');
+                closeTurn();
             } catch (error) {
                 console.error('❌ Failed to process webhook call:', error.message);
             }
