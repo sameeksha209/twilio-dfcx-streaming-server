@@ -222,9 +222,12 @@ function startAudioTurn(callSid, streamSid, ws) {
         },
         queryParams: {
             parameters: {
-                ani: { stringValue: "+14155551234" },
-                dnis: { stringValue: "+18005550123" },
-                language: { stringValue: "en-US" }
+                fields: {
+                    ani: { stringValue: "+14155551234" },
+                    dnis: { stringValue: "+18005550123" },
+                    user_name: { stringValue: 'John Doe' },
+                    account_id: { numberValue: 12345 }
+                }
             }
         },
         outputAudioConfig: {
@@ -357,9 +360,12 @@ function startEventTurn(eventName, callSid, streamSid, ws) {
         queryInput: { event: { event: eventName }, languageCode: "en-US" },
         queryParams: {
             parameters: {
-                ani: { stringValue: "+14155551234" },
-                dnis: { stringValue: "+18005550123" },
-                language: { stringValue: "en-US" }
+                fields: {
+                    ani: { stringValue: "+14155551234" },
+                    dnis: { stringValue: "+18005550123" },
+                    user_name: { stringValue: 'John Doe' },
+                    account_id: { numberValue: 12345 }
+                }
             }
         },
         outputAudioConfig: { audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW", sampleRateHertz: 8000 }
