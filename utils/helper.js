@@ -352,6 +352,13 @@ function startEventTurn(eventName, callSid, streamSid, ws) {
     dfcxStream.write({
         session: createSessionPath(callSid),
         queryInput: { event: { event: eventName }, languageCode: "en-US" },
+        queryParams: {
+            parameters: {
+                ani: { stringValue: ws.customData?.ani || "" },
+                dnis: { stringValue: ws.customData?.dnis || "" },
+                language: { stringValue: ws.customData?.language || "en-US" }
+            }
+        },
         outputAudioConfig: { audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW", sampleRateHertz: 8000 }
     });
 }
