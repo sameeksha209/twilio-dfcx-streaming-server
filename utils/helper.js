@@ -248,6 +248,7 @@ function startAudioTurn(callSid, streamSid, ws) {
         // if (response) {
         //     console.log('data: ', data);
         // }
+        console.log("⬅️ DFCX audio session parameters:", JSON.stringify(response?.queryResult?.parameters));
         const responseMessages = response?.queryResult?.responseMessages || [];
         console.log("responseMessages array: ", JSON.stringify(responseMessages));
         const handoffMsg = responseMessages.find(msg => msg.liveAgentHandoff);
@@ -343,6 +344,8 @@ function startEventTurn(eventName, callSid, streamSid, ws) {
     // Set up handlers before writing
     dfcxStream.on("data", (data) => {
         const response = data.detectIntentResponse;
+        console.log("⬅️ DFCX event session parameters:", JSON.stringify(response?.queryResult?.parameters));
+
         if (response && response.outputAudio) {
             sendAudioToTwilio(response.outputAudio, streamSid, ws);
             closeTurn();
