@@ -245,9 +245,9 @@ function startAudioTurn(callSid, streamSid, ws) {
         }
 
         const response = data.detectIntentResponse;
-        if (response) {
-            console.log('data: ', data);
-        }
+        // if (response) {
+        //     console.log('data: ', data);
+        // }
         const responseMessages = response?.queryResult?.responseMessages || [];
         console.log("responseMessages array: ", JSON.stringify(responseMessages));
         const handoffMsg = responseMessages.find(msg => msg.liveAgentHandoff);
