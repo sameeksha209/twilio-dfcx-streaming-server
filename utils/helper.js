@@ -220,16 +220,6 @@ function startAudioTurn(callSid, streamSid, ws) {
             },
             languageCode: "en-US",
         },
-        queryParams: {
-            parameters: {
-                fields: {
-                    ani: { stringValue: "+14155551234" },
-                    dnis: { stringValue: "+18005550123" },
-                    user_name: { stringValue: 'John Doe' },
-                    account_id: { numberValue: 12345 }
-                }
-            }
-        },
         outputAudioConfig: {
             audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW",
             sampleRateHertz: 8000,
@@ -361,13 +351,15 @@ function startEventTurn(eventName, callSid, streamSid, ws) {
         queryParams: {
             parameters: {
                 fields: {
-                    ani: { stringValue: "+14155551234" },
-                    dnis: { stringValue: "+18005550123" },
+                    ani: { stringValue: ws.customData?.ani || "" },
+                    dnis: { stringValue: ws.customData?.dnis || "" },
+                    language: { stringValue: ws.customData?.language || "en-US" },
                     user_name: { stringValue: 'John Doe' },
                     account_id: { numberValue: 12345 }
                 }
             }
         },
+
         outputAudioConfig: { audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW", sampleRateHertz: 8000 }
     });
 }
