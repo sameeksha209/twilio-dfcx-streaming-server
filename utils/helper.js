@@ -13,17 +13,17 @@ function closeTurn(ws) {
 async function executeAddCard(intent, ws) {
     const start = Date.now();
     console.log(`💳 [${ws.callSid}] WEBHOOK_SEND: Add Card | Intent: ${intent}`);
-    
+
     try {
         const payload = {
             last_open_intent: intent,
             callSid: ws.callSid,
             token: ws.customData?.token
         };
-        
+
         const response = await axios.post('https://csrservice-7670-dev.twil.io/checkCallbackStatus', payload);
-        console.log(`✅ [${ws.callSid}] WEBHOOK_RCVD: Success (${response.status}) | Duration: ${Date.now() - start}ms`);
-        closeTurn(ws); 
+        console.log(`✅ [${ws.callSid}] WEBHOOK_RCVD: Success (${response.status}) | Duration: ${Date.now() - start}ms | Data: ${JSON.stringify(response.data)}`);
+        closeTurn(ws);
     } catch (error) {
         console.error(`❌ [${ws.callSid}] WEBHOOK_FAIL: Add Card Error: ${error.message}`);
     }
@@ -32,7 +32,9 @@ async function executeAddCard(intent, ws) {
 async function executeHandoff(handoffMsg, lastIntent, ws) {
     const start = Date.now();
     console.log(`🚨 [${ws.callSid}] WEBHOOK_SEND: Handoff | Intent: ${lastIntent}`);
-    
+    // 🛑 STOP NEW STREAMS FROM STARTING
+    ws.stopInProgress = true;
+
     try {
         const metadata = handoffMsg.liveAgentHandoff.metadata?.fields || {};
         const payload = {
@@ -45,7 +47,7 @@ async function executeHandoff(handoffMsg, lastIntent, ws) {
         };
 
         const response = await axios.post('https://csrservice-7670-dev.twil.io/checkCallbackStatus', payload);
-        console.log(`✅ [${ws.callSid}] WEBHOOK_RCVD: Handoff Success (${response.status}) | Duration: ${Date.now() - start}ms`);
+        console.log(`✅ [${ws.callSid}] WEBHOOK_RCVD: Handoff Success (${response.status}) | Duration: ${Date.now() - start}ms | Data: ${JSON.stringify(response.data)}`);
 
         ws.send(JSON.stringify({ event: "stop" }));
         console.log(`⏹️ [${ws.callSid}] INSTRUCTION: Sent STOP to Twilio for handoff`);

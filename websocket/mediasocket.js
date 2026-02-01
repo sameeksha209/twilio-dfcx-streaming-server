@@ -41,9 +41,10 @@ module.exports = function (server) {
 
       switch (json.event) {
         case "start":
-          console.log(`🚀STREAM_START | JSON: `, JSON.stringify(json.start));
+          console.log(`🚀STREAM_START | JSON: ${JSON.stringify(json.start)}`);
           ws.callSid = json.start.callSid;
           ws.streamSid = json.start.streamSid;
+          ws.stopInProgress = false; //for agentHandoff
           const token = json.start.customParameters?.token;
           if (!token) {
             console.error(`❌ [${ws.callSid}] AUTH_ERROR: Token missing in customParameters`);
@@ -83,7 +84,7 @@ module.exports = function (server) {
 
         case "media":
           //Don't process media if the call isn't fully authenticated yet
-          if (ws.callSid === "PENDING") return;
+          if (ws.callSid === "PENDING" || ws.stopInProgress) return;
 
           if (!ws.dfcxStream) {
             console.log(`🎙️ [${ws.callSid}] AUDIO_START: Creating DFCX stream`);
