@@ -20,8 +20,8 @@ async function executeAddCard(intent, ws) {
             callSid: ws.callSid,
             token: ws.customData?.token
         };
-
-        const response = await axios.post('https://csrservice-7670-dev.twil.io/checkCallbackStatus', payload);
+        console.log(`[${ws.callSid}] executeAddCard payload ${JSON.stringify(payload)}`);
+        const response = await axios.post('https://relayserver-2802-dev.twil.io/checkCallbackStatus', payload);
         console.log(`✅ [${ws.callSid}] WEBHOOK_RCVD: Success (${response.status}) | Duration: ${Date.now() - start}ms | Data: ${JSON.stringify(response.data)}`);
         closeTurn(ws);
     } catch (error) {
@@ -45,8 +45,8 @@ async function executeHandoff(handoffMsg, lastIntent, ws) {
             last_open_intent: lastIntent,
             callSid: ws.callSid
         };
-
-        const response = await axios.post('https://csrservice-7670-dev.twil.io/checkCallbackStatus', payload);
+        console.log(`[${ws.callSid}] executeHandoff payload ${JSON.stringify(payload)}`);
+        const response = await axios.post('https://relayserver-2802-dev.twil.io/checkCallbackStatus', payload);
         console.log(`✅ [${ws.callSid}] WEBHOOK_RCVD: Handoff Success (${response.status}) | Duration: ${Date.now() - start}ms | Data: ${JSON.stringify(response.data)}`);
 
         ws.send(JSON.stringify({ event: "stop" }));
