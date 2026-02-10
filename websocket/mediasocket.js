@@ -24,7 +24,6 @@ module.exports = function (server) {
     console.log({
       method: req.method,
       url: req.url,
-      fullUrl: `${req.protocol}://${req.get('host')}${req.originalUrl}`,
       headers: req.headers,
       signatureHeader: req.headers['x-twilio-signature']
     });
