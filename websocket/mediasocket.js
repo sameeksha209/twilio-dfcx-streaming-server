@@ -1,25 +1,73 @@
 "use strict";
 const WebSocket = require("ws");
 const jwt = require("jsonwebtoken");
+const twilio = require('twilio'); // [AUTH] Twilio SDK — used for X-Twilio-Signature validation on WebSocket upgrade
 const { mulawToPCM } = require("../utils/audio");
 const { startEventTurn, startAudioTurn, closeTurn } = require("../utils/helper");
 
-const { JWT_SECRET, JWT_ISSUER, JWT_AUDIENCE } = process.env;
+// [AUTH] TWILIO_AUTH_TOKEN: Twilio Account Auth Token for signature validation.
+//        Server B validates all upgrade requests originate from Twilio.
+//        Required — server exits at startup if not set.
+const { JWT_SECRET, JWT_ISSUER, JWT_AUDIENCE, TWILIO_AUTH_TOKEN } = process.env;
+
+// [AUTH] Fail fast — TWILIO_AUTH_TOKEN is required for X-Twilio-Signature validation
+if (!TWILIO_AUTH_TOKEN) {
+  console.error("[AUTH] FATAL: TWILIO_AUTH_TOKEN environment variable is not set. Server B requires this to validate X-Twilio-Signature on WebSocket upgrade requests.");
+  process.exit(1);
+}
 
 module.exports = function (server) {
   const wss = new WebSocket.Server({ noServer: true });
 
   server.on("upgrade", (req, socket, head) => {
+    console.log("--- TWILIO INBOUND CHECK ---");
+    console.log({
+      method: req.method,
+      url: req.url,
+      fullUrl: `${req.protocol}://${req.get('host')}${req.originalUrl}`,
+      headers: req.headers,
+      signatureHeader: req.headers['x-twilio-signature']
+    });
     const pathname = req.url.split('?')[0];
-    if (pathname === "/streaming") {
-      console.log(`[HTTP] 🟢 Upgrade request for ${pathname}`);
-      wss.handleUpgrade(req, socket, head, (ws) => {
-        wss.emit("connection", ws, req);
-      });
-    } else {
+
+    // [AUTH] Layer 0 — Path validation
+    if (pathname !== "/streaming") {
       console.warn(`[HTTP] Unauthorized upgrade path: ${pathname}`);
       socket.destroy();
+      return;
     }
+
+    console.log(`[HTTP] 🟢 Upgrade request for ${pathname}`);
+
+    // [AUTH] Layer 1 — X-Twilio-Signature validation
+    const signature = req.headers['x-twilio-signature'];
+
+    if (!signature) {
+      console.error("[AUTH] Missing X-Twilio-Signature header — rejecting upgrade");
+      socket.destroy();
+      return;
+    }
+
+    // Reconstruct the public URL (Cloud Run terminates TLS)
+    const proto = req.headers['x-forwarded-proto'] || 'https';
+    const url = `${proto}://${req.headers.host}${req.url}`;
+
+    // Try exact URL first, then trailing-slash variant (Twilio quirk)
+    const valid = twilio.validateRequest(TWILIO_AUTH_TOKEN, signature, url, {})
+      || twilio.validateRequest(TWILIO_AUTH_TOKEN, signature, url.endsWith('/') ? url.slice(0, -1) : url + '/', {});
+
+    if (!valid) {
+      console.error(`[AUTH] X-Twilio-Signature validation failed for ${url}`);
+      socket.destroy();
+      return;
+    }
+
+    console.log("[AUTH] X-Twilio-Signature validated");
+
+    // Upgrade to WebSocket (JWT validation happens on 'start' event — Layer 2)
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      wss.emit("connection", ws, req);
+    });
   });
 
   wss.on("connection", (ws) => {
