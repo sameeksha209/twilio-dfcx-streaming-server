@@ -49,11 +49,12 @@ module.exports = function (server) {
 
     // Reconstruct the public URL (Cloud Run terminates TLS)
     const proto = req.headers['x-forwarded-proto'] || 'https';
-    const url = `${proto}://${req.headers.host}${req.url}`;
+    const urlHTTPS = `${proto}://${req.headers.host}${req.url}`;
+    const urlWSS = `wss://${req.headers.host}${req.url}`;
 
     // Try exact URL first, then trailing-slash variant (Twilio quirk)
-    const valid = twilio.validateRequest(TWILIO_AUTH_TOKEN, signature, url, {})
-      || twilio.validateRequest(TWILIO_AUTH_TOKEN, signature, url.endsWith('/') ? url.slice(0, -1) : url + '/', {});
+    const valid = twilio.validateRequest(TWILIO_AUTH_TOKEN, signature, urlHTTPS, {})
+      || twilio.validateRequest(TWILIO_AUTH_TOKEN, signature, urlWSS, {});
 
     if (!valid) {
       console.error(`[AUTH] X-Twilio-Signature validation failed for ${url}`);
