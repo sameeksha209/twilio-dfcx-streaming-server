@@ -25,9 +25,9 @@ async function executeAddCard(intent, ws) {
             token: ws.customData?.token
         };
         console.log(`[${ws.callSid}] executeAddCard payload ${JSON.stringify(payload)}`);
-        /* const response = await axios.post('https://relayserver-2802-dev.twil.io/checkCallbackStatus', payload);
-        console.log(`✅ [${ws.callSid}] WEBHOOK_RCVD: Success (${response.status}) | Duration: ${Date.now() - start}ms | Data: ${JSON.stringify(response.data)}`); */
-        const nextStepUrl = `https://us-central1-tollwaypay.cloudfunctions.net/creditcard?Type=IVR&Env=trn&Language=${ws.customData.language}&CallbackURL=https://webhooks.twilio.com/v1/Accounts/${TWILIO_ACCOUNT_SID}/Flows/${CC_FLOW_SID}`;
+        const response = await axios.post('https://relayserver-2802-dev.twil.io/checkCallbackStatus', payload);
+        console.log(`✅ [${ws.callSid}] WEBHOOK_RCVD: Success (${response.status}) | Duration: ${Date.now() - start}ms | Data: ${JSON.stringify(response.data)}`);
+        /* const nextStepUrl = `https://us-central1-tollwaypay.cloudfunctions.net/creditcard?Type=IVR&Env=trn&Language=${ws.customData.language}&CallbackURL=https://webhooks.twilio.com/v1/Accounts/${TWILIO_ACCOUNT_SID}/Flows/${CC_FLOW_SID}`;
 
         // 1. Tell Twilio to immediately redirect the live call
         await client.calls(ws.callSid).update({
@@ -35,7 +35,7 @@ async function executeAddCard(intent, ws) {
             method: 'POST'
         });
 
-        console.log(`✅ [${ws.callSid}] REST API Redirect command sent.`);
+        console.log(`✅ [${ws.callSid}] REST API Redirect command sent.`); */
         closeTurn(ws);
     } catch (error) {
         console.error(`❌ [${ws.callSid}] WEBHOOK_FAIL: Add Card Error: ${error.message}`);
