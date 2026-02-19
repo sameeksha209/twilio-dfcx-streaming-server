@@ -132,9 +132,9 @@ module.exports = function (server) {
 
             const sessionType = json.start?.customParameters?.sessionType;
 
-            if (sessionType === "start") {
+            if (sessionType?.toLowerCase() === "start") {
               startEventTurn("welcome", ws);
-            } else if (sessionType === "resume") {
+            } else if (sessionType?.toLowerCase() === "resume") {
               startEventTurn("back_to_dfcx", ws);
             }
 
