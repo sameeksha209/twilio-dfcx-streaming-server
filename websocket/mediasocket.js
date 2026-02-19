@@ -113,7 +113,14 @@ module.exports = function (server) {
               return;
             }
 
+            if (ws.sessionInitialized) {
+              console.log(`⚠️ [${ws.callSid}] Start already processed`);
+              break;
+            }
+
+            ws.sessionInitialized = true;
             ws.user = decodedJWT;
+
             ws.customData = {
               ani: json.start.customParameters?.ani,
               dnis: json.start.customParameters?.dnis,
@@ -121,8 +128,15 @@ module.exports = function (server) {
               token
             };
 
-            console.log(`✅ [${ws.callSid}] AUTH_SUCCESS | Welcome event triggered`);
-            startEventTurn("welcome", ws);
+            console.log(`✅ [${ws.callSid}] AUTH_SUCCESS`);
+
+            const sessionType = json.start?.customParameters?.sessionType;
+
+            if (sessionType === "start") {
+              startEventTurn("welcome", ws);
+            } else if (sessionType === "resume") {
+              startEventTurn("back_to_dfcx", ws);
+            }
 
           } catch (err) {
             console.error(`❌ [${ws.callSid}] AUTH_INVALID: ${err.message}`);
