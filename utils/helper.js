@@ -1,9 +1,21 @@
 const { sessionClient, createSessionPath } = require("../dfcx/client");
 const axios = require('axios');
-const twilio = require('twilio');
-const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, CC_FLOW_SID } = process.env;
-// Initialize with your Twilio Credentials
-const client = new twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+
+function mapToDfParams(data) {
+    const fields = {};
+    if (!data) return fields;
+
+    Object.entries(data).forEach(([key, value]) => {
+        // Skip the token to keep session size down and logs clean
+        if (key === 'token') return;
+
+        if (value !== undefined && value !== null) {
+            // Mapping everything as stringValue for maximum compatibility with DFCX
+            fields[key] = { stringValue: String(value) };
+        }
+    });
+    return fields;
+}
 
 function closeTurn(ws) {
     if (ws.dfcxStream) {
@@ -27,15 +39,7 @@ async function executeAddCard(intent, ws) {
         console.log(`[${ws.callSid}] executeAddCard payload ${JSON.stringify(payload)}`);
         const response = await axios.post('https://relayserver-2802-dev.twil.io/checkCallbackStatus', payload);
         console.log(`✅ [${ws.callSid}] WEBHOOK_RCVD: Success (${response.status}) | Duration: ${Date.now() - start}ms | Data: ${JSON.stringify(response.data)}`);
-        /* const nextStepUrl = `https://us-central1-tollwaypay.cloudfunctions.net/creditcard?Type=IVR&Env=trn&Language=${ws.customData.language}&CallbackURL=https://webhooks.twilio.com/v1/Accounts/${TWILIO_ACCOUNT_SID}/Flows/${CC_FLOW_SID}`;
 
-        // 1. Tell Twilio to immediately redirect the live call
-        await client.calls(ws.callSid).update({
-            url: nextStepUrl,
-            method: 'POST'
-        });
-
-        console.log(`✅ [${ws.callSid}] REST API Redirect command sent.`); */
         closeTurn(ws);
     } catch (error) {
         console.error(`❌ [${ws.callSid}] WEBHOOK_FAIL: Add Card Error: ${error.message}`);
@@ -89,6 +93,10 @@ function startAudioTurn(ws) {
                 },
             },
             languageCode: ws.customData.language,
+        },
+        queryParams: {
+            // ✅ Added dynamic parameters to voice turns too!
+            parameters: { fields: mapToDfParams(ws.customData) }
         },
         outputAudioConfig: {
             audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW",
@@ -146,16 +154,18 @@ function startEventTurn(eventName, ws) {
 
     stream.write({
         session: createSessionPath(ws.callSid),
-        queryInput: { event: { event: eventName }, languageCode: ws.customData.language },
-        queryParams: {
-            parameters: {
-                fields: {
-                    ani: { stringValue: ws.customData.ani || "" },
-                    dnis: { stringValue: ws.customData.dnis || "" }
-                }
-            }
+        queryInput: { 
+            event: { event: eventName }, 
+            languageCode: ws.customData.language 
         },
-        outputAudioConfig: { audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW", sampleRateHertz: 8000 }
+        queryParams: {
+            // ✅ Uses the mapping helper to include all customParameters
+            parameters: { fields: mapToDfParams(ws.customData) }
+        },
+        outputAudioConfig: { 
+            audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW", 
+            sampleRateHertz: 8000 
+        }
     });
 }
 

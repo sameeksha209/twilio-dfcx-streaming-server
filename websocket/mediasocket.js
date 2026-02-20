@@ -93,7 +93,8 @@ module.exports = function (server) {
           ws.callSid = json.start.callSid;
           ws.streamSid = json.start.streamSid;
           ws.stopInProgress = false; //for agentHandoff
-          const token = json.start.customParameters?.token;
+          const twilioParams = json.start.customParameters || {};
+          const token = twilioParams.token;
           if (!token) {
             console.error(`❌ [${ws.callSid}] AUTH_ERROR: Token missing in customParameters`);
             ws.close(1008, "Missing auth token");
@@ -122,19 +123,19 @@ module.exports = function (server) {
             ws.user = decodedJWT;
 
             ws.customData = {
-              ani: json.start.customParameters?.ani,
-              dnis: json.start.customParameters?.dnis,
-              language: json.start.customParameters?.language,
-              token
+                ...twilioParams, 
+                language: twilioParams.language || "en-US",
+                ani: twilioParams.ani || "",
+                dnis: twilioParams.dnis || ""
             };
 
             console.log(`✅ [${ws.callSid}] AUTH_SUCCESS`);
 
-            const sessionType = json.start?.customParameters?.sessionType;
+            const sessionType = twilioParams.sessionType?.toLowerCase();
 
-            if (sessionType?.toLowerCase() === "start") {
+            if (sessionType === "start") {
               startEventTurn("welcome", ws);
-            } else if (sessionType?.toLowerCase() === "resume") {
+            } else if (sessionType === "resume") {
               startEventTurn("back_to_dfcx", ws);
             }
 
