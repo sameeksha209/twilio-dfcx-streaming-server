@@ -3,7 +3,7 @@ const WebSocket = require("ws");
 const jwt = require("jsonwebtoken");
 const twilio = require('twilio'); // [AUTH] Twilio SDK — used for X-Twilio-Signature validation on WebSocket upgrade
 const { mulawToPCM } = require("../utils/audio");
-const { startEventTurn, startAudioTurn, closeTurn } = require("../utils/helper");
+const { startEventTurn, startAudioTurn, closeTurn, startDtmfTurn } = require("../utils/helper");
 
 // [AUTH] TWILIO_AUTH_TOKEN: Twilio Account Auth Token for signature validation.
 //        Server B validates all upgrade requests originate from Twilio.
