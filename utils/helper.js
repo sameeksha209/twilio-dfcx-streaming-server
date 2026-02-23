@@ -34,6 +34,7 @@ async function executeAddCard(intent, ws) {
         const payload = {
             last_open_intent: intent,
             callSid: ws.callSid,
+            streamSid: ws.streamSid,
             token: ws.customData?.token
         };
         console.log(`[${ws.callSid}] executeAddCard payload ${JSON.stringify(payload)}`);
