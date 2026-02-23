@@ -123,10 +123,10 @@ module.exports = function (server) {
             ws.user = decodedJWT;
 
             ws.customData = {
-                ...twilioParams, 
-                language: twilioParams.language || "en-US",
-                ani: twilioParams.ani || "",
-                dnis: twilioParams.dnis || ""
+              ...twilioParams,
+              language: twilioParams.language || "en-US",
+              ani: twilioParams.ani || "",
+              dnis: twilioParams.dnis || ""
             };
 
             console.log(`✅ [${ws.callSid}] AUTH_SUCCESS`);
@@ -163,9 +163,10 @@ module.exports = function (server) {
           break;
 
         case "dtmf":
-          console.log(`🔢 [${ws.callSid}] DTMF: ${json.dtmf.digit}`);
+          const digit = json.dtmf.digit;
+          console.log(`🔢 [${ws.callSid}] Twilio DTMF Rcvd: ${digit}`);
           closeTurn(ws);
-          startEventTurn(`DTMF_${json.dtmf.digit}`, ws);
+          startDtmfTurn(digit, ws);
           break;
 
         case "mark":

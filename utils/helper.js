@@ -191,4 +191,41 @@ function setupStreamHandlers(stream, ws) {
     });
 }
 
-module.exports = { startEventTurn, startAudioTurn, closeTurn };
+function startDtmfTurn(digit, ws) {
+    console.log(`🔢 [${ws.callSid}] DFCX_DTMF_SEND: ${digit}`);
+    
+    // 1. Interrupt Twilio's current audio playback
+    ws.send(JSON.stringify({
+        event: "clear",
+        streamSid: ws.streamSid
+    }));
+
+    ws.activeTurn = "DTMF";
+    const stream = sessionClient.streamingDetectIntent();
+    ws.dfcxStream = stream;
+
+    setupStreamHandlers(stream, ws);
+
+    stream.write({
+        session: createSessionPath(ws.callSid),
+        queryInput: {
+            dtmf: { 
+                digits: String(digit),
+                // finishDigit: "#"
+            },
+            languageCode: ws.customData.language
+        },
+        queryParams: {
+            parameters: { fields: mapToDfParams(ws.customData) }
+        },
+        outputAudioConfig: {
+            audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW",
+            sampleRateHertz: 8000
+        }
+    });
+
+    // Close the write-stream as DTMF is a discrete event
+    stream.end();
+}
+
+module.exports = { startEventTurn, startAudioTurn, closeTurn, startDtmfTurn };
