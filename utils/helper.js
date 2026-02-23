@@ -105,38 +105,7 @@ function startAudioTurn(ws) {
         },
     });
 
-    stream.on("data", async (data) => {
-        if (data.recognitionResult) {
-            console.log(`🗣️ [${ws.callSid}] HEARING: "${data.recognitionResult.transcript}" (Final: ${data.recognitionResult.isFinal})`);
-        }
-
-        const response = data.detectIntentResponse;
-        if (response) {
-            const queryResult = response.queryResult;
-            const intent = queryResult?.intent?.displayName;
-            const handoffMsg = queryResult?.responseMessages?.find(m => m.liveAgentHandoff);
-
-            if (intent) console.log(`🎯 [${ws.callSid}] INTENT_MATCH: ${intent}`);
-
-            if (response.outputAudio) {
-                console.log(`🔊 [${ws.callSid}] BOT_AUDIO: Sending ${response.outputAudio.length} bytes to Twilio`);
-                sendAudioToTwilio(response.outputAudio, ws);
-            }
-
-            if (handoffMsg) {
-                await executeHandoff(handoffMsg, intent, ws);
-            } else if (intent === "Add Card") {
-                await executeAddCard(intent, ws);
-            } else if (response.outputAudio) {
-                closeTurn(ws);
-            }
-        }
-    });
-
-    stream.on("error", (err) => {
-        console.error(`❌ [${ws.callSid}] DFCX_ERROR:`, err);
-        closeTurn(ws);
-    });
+    setupStreamHandlers(stream, ws);
 }
 
 function startEventTurn(eventName, ws) {
@@ -155,17 +124,17 @@ function startEventTurn(eventName, ws) {
 
     stream.write({
         session: createSessionPath(ws.callSid),
-        queryInput: { 
-            event: { event: eventName }, 
-            languageCode: ws.customData.language 
+        queryInput: {
+            event: { event: eventName },
+            languageCode: ws.customData.language
         },
         queryParams: {
             // ✅ Uses the mapping helper to include all customParameters
             parameters: { fields: mapToDfParams(ws.customData) }
         },
-        outputAudioConfig: { 
-            audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW", 
-            sampleRateHertz: 8000 
+        outputAudioConfig: {
+            audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW",
+            sampleRateHertz: 8000
         }
     });
 }
@@ -182,6 +151,44 @@ function sendAudioToTwilio(audioBuffer, ws) {
         streamSid: ws.streamSid,
         mark: { name: "bot_speech_segment" }
     }));
+}
+
+// Shared handler to process DFCX responses for ANY type of input
+function setupStreamHandlers(stream, ws) {
+    stream.on("data", async (data) => {
+        if (data.recognitionResult) {
+            console.log(`🗣️ [${ws.callSid}] HEARING: "${data.recognitionResult.transcript}"`);
+        }
+
+        const response = data.detectIntentResponse;
+        if (response) {
+            const queryResult = response.queryResult;
+            const intent = queryResult?.intent?.displayName;
+            const handoffMsg = queryResult?.responseMessages?.find(m => m.liveAgentHandoff);
+
+            if (intent) console.log(`🎯 [${ws.callSid}] MATCHED: ${intent}`);
+
+            // Handle Audio Output
+            if (response.outputAudio && response.outputAudio.length > 0) {
+                sendAudioToTwilio(response.outputAudio, ws);
+            }
+
+            // Handle Logic/Redirects
+            if (handoffMsg) {
+                await executeHandoff(handoffMsg, intent, ws);
+            } else if (intent === "Add Card") {
+                await executeAddCard(intent, ws);
+            } else if (response.outputAudio) {
+                // Keep the turn active until audio is sent, then close for next user input
+                closeTurn(ws);
+            }
+        }
+    });
+
+    stream.on("error", (err) => {
+        console.error(`❌ [${ws.callSid}] DFCX_STREAM_ERROR:`, err);
+        closeTurn(ws);
+    });
 }
 
 module.exports = { startEventTurn, startAudioTurn, closeTurn };
