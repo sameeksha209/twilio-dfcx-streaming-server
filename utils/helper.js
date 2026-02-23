@@ -194,25 +194,47 @@ function setupStreamHandlers(stream, ws) {
 function startDtmfTurn(digit, ws) {
     console.log(`🔢 [${ws.callSid}] DFCX_DTMF_SEND: ${digit}`);
     
-    // 1. Interrupt Twilio's current audio playback
+    // 1. Lock the turn state to 'DTMF'
+    ws.activeTurn = "DTMF"; 
+
+    // 2. Clear Twilio buffer
     ws.send(JSON.stringify({
         event: "clear",
         streamSid: ws.streamSid
     }));
 
-    ws.activeTurn = "DTMF";
     const stream = sessionClient.streamingDetectIntent();
     ws.dfcxStream = stream;
 
-    setupStreamHandlers(stream, ws);
+    // Use a modified handler that only unlocks AFTER audio is received
+    stream.on("data", (data) => {
+        const response = data.detectIntentResponse;
+        if (response) {
+            // Handle matched intent/parameters
+            if (response.queryResult?.intent) {
+                console.log(`🎯 [${ws.callSid}] DTMF MATCH: ${response.queryResult.intent.displayName}`);
+            }
+
+            // Send response audio
+            if (response.outputAudio && response.outputAudio.length > 0) {
+                sendAudioToTwilio(response.outputAudio, ws);
+            }
+
+            // 🔓 IMPORTANT: Only unlock the turn after DFCX has responded
+            // We use a small delay so the 'media' packets don't restart the loop immediately
+            setTimeout(() => {
+                if (ws.activeTurn === "DTMF") {
+                    ws.activeTurn = null;
+                    ws.dfcxStream = null;
+                }
+            }, 1000); 
+        }
+    });
 
     stream.write({
         session: createSessionPath(ws.callSid),
         queryInput: {
-            dtmf: { 
-                digits: String(digit),
-                // finishDigit: "#"
-            },
+            dtmf: { digits: String(digit) },
             languageCode: ws.customData.language
         },
         queryParams: {
@@ -224,7 +246,6 @@ function startDtmfTurn(digit, ws) {
         }
     });
 
-    // Close the write-stream as DTMF is a discrete event
     stream.end();
 }
 

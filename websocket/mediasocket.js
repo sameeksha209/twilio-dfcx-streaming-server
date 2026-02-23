@@ -147,7 +147,7 @@ module.exports = function (server) {
 
         case "media":
           //Don't process media if the call isn't fully authenticated yet
-          if (ws.callSid === "PENDING" || ws.stopInProgress) return;
+          if (ws.callSid === "PENDING" || ws.stopInProgress || ws.activeTurn === "DTMF") return;
 
           if (!ws.dfcxStream) {
             console.log(`🎙️ [${ws.callSid}] AUDIO_START: Creating DFCX stream`);
