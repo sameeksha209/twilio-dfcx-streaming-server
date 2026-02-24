@@ -20,13 +20,12 @@ module.exports = function (server) {
   const wss = new WebSocket.Server({ noServer: true });
 
   server.on("upgrade", (req, socket, head) => {
-    console.log("--- TWILIO INBOUND CHECK ---");
-    console.log({
+    console.log(`--- TWILIO INBOUND CHECK --- ${JSON.stringify({
       method: req.method,
       url: req.url,
       headers: req.headers,
       signatureHeader: req.headers['x-twilio-signature']
-    });
+    })}`);
     const pathname = req.url.split('?')[0];
 
     // [AUTH] Layer 0 — Path validation
@@ -175,6 +174,7 @@ module.exports = function (server) {
 
         case "stop":
           console.log(`⏹️ [${ws.callSid}] STREAM_STOP: Twilio ended the stream`);
+          console.log(`stop event object: ${JSON.stringify(json)}`);
           closeTurn(ws);
           break;
       }

@@ -235,6 +235,7 @@ function startDtmfTurn(digit, ws) {
         session: createSessionPath(ws.callSid),
         queryInput: {
             dtmf: { digits: String(digit) },
+            finishDigit: '#',
             languageCode: ws.customData.language
         },
         queryParams: {
