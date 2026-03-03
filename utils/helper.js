@@ -38,7 +38,7 @@ async function executeAddCard(intent, ws) {
             token: ws.customData?.token
         };
         console.log(`[${ws.callSid}] executeAddCard payload ${JSON.stringify(payload)}`);
-        const response = await axios.post('https://relayserver-2802-dev.twil.io/checkCallbackStatus', payload);
+        const response = await axios.post(process.env.CSR_WEBHOOK_URL, payload);
         console.log(`✅ [${ws.callSid}] WEBHOOK_RCVD: Success (${response.status}) | Duration: ${Date.now() - start}ms | Data: ${JSON.stringify(response.data)}`);
 
         closeTurn(ws);
@@ -64,7 +64,7 @@ async function executeHandoff(handoffMsg, lastIntent, ws) {
             callSid: ws.callSid
         };
         console.log(`[${ws.callSid}] executeHandoff payload ${JSON.stringify(payload)}`);
-        const response = await axios.post('https://relayserver-2802-dev.twil.io/checkCallbackStatus', payload);
+        const response = await axios.post(process.env.CSR_WEBHOOK_URL, payload);
         console.log(`✅ [${ws.callSid}] WEBHOOK_RCVD: Handoff Success (${response.status}) | Duration: ${Date.now() - start}ms | Data: ${JSON.stringify(response.data)}`);
 
         ws.send(JSON.stringify({ event: "stop" }));
@@ -96,7 +96,6 @@ function startAudioTurn(ws) {
             languageCode: ws.customData.language,
         },
         queryParams: {
-            // ✅ Added dynamic parameters to voice turns too!
             parameters: { fields: mapToDfParams(ws.customData) }
         },
         outputAudioConfig: {
@@ -115,6 +114,8 @@ function startEventTurn(eventName, ws) {
     ws.dfcxStream = stream;
 
     stream.on("data", (data) => {
+        if (ws.dfcxStream !== stream) return;
+
         if (data.detectIntentResponse?.outputAudio) {
             console.log(`🔊 [${ws.callSid}] BOT_AUDIO: Sending event response audio`);
             sendAudioToTwilio(data.detectIntentResponse.outputAudio, ws);
@@ -129,7 +130,6 @@ function startEventTurn(eventName, ws) {
             languageCode: ws.customData.language
         },
         queryParams: {
-            // ✅ Uses the mapping helper to include all customParameters
             parameters: { fields: mapToDfParams(ws.customData) }
         },
         outputAudioConfig: {
@@ -153,9 +153,12 @@ function sendAudioToTwilio(audioBuffer, ws) {
     }));
 }
 
-// Shared handler to process DFCX responses for ANY type of input
 function setupStreamHandlers(stream, ws) {
     stream.on("data", async (data) => {
+        // Ignore responses from a stale stream (prevents race condition
+        // where old audio callback kills a newer DTMF/event stream)
+        if (ws.dfcxStream !== stream) return;
+
         if (data.recognitionResult) {
             console.log(`🗣️ [${ws.callSid}] HEARING: "${data.recognitionResult.transcript}"`);
         }
@@ -179,7 +182,6 @@ function setupStreamHandlers(stream, ws) {
             } else if (intent === "Add Card") {
                 await executeAddCard(intent, ws);
             } else if (response.outputAudio) {
-                // Keep the turn active until audio is sent, then close for next user input
                 closeTurn(ws);
             }
         }
@@ -187,68 +189,9 @@ function setupStreamHandlers(stream, ws) {
 
     stream.on("error", (err) => {
         console.error(`❌ [${ws.callSid}] DFCX_STREAM_ERROR:`, err);
-        closeTurn(ws);
+        if (ws.dfcxStream === stream) closeTurn(ws);
     });
 }
-
-/* function startDtmfTurn(digit, ws) {
-    console.log(`🔢 [${ws.callSid}] DFCX_DTMF_SEND: ${digit}`);
-    
-    // 1. Lock the turn state to 'DTMF'
-    ws.activeTurn = "DTMF"; 
-
-    // 2. Clear Twilio buffer
-    ws.send(JSON.stringify({
-        event: "clear",
-        streamSid: ws.streamSid
-    }));
-
-    const stream = sessionClient.streamingDetectIntent();
-    ws.dfcxStream = stream;
-
-    // Use a modified handler that only unlocks AFTER audio is received
-    stream.on("data", (data) => {
-        const response = data.detectIntentResponse;
-        if (response) {
-            // Handle matched intent/parameters
-            if (response.queryResult?.intent) {
-                console.log(`🎯 [${ws.callSid}] DTMF MATCH: ${response.queryResult.intent.displayName}`);
-            }
-
-            // Send response audio
-            if (response.outputAudio && response.outputAudio.length > 0) {
-                sendAudioToTwilio(response.outputAudio, ws);
-            }
-
-            // 🔓 IMPORTANT: Only unlock the turn after DFCX has responded
-            // We use a small delay so the 'media' packets don't restart the loop immediately
-            setTimeout(() => {
-                if (ws.activeTurn === "DTMF") {
-                    ws.activeTurn = null;
-                    ws.dfcxStream = null;
-                }
-            }, 1000); 
-        }
-    });
-
-    stream.write({
-        session: createSessionPath(ws.callSid),
-        queryInput: {
-            dtmf: { digits: String(digit) },
-            finishDigit: '#',
-            languageCode: ws.customData.language
-        },
-        queryParams: {
-            parameters: { fields: mapToDfParams(ws.customData) }
-        },
-        outputAudioConfig: {
-            audioEncoding: "OUTPUT_AUDIO_ENCODING_MULAW",
-            sampleRateHertz: 8000
-        }
-    });
-
-    stream.end();
-} */
 
 function startDtmfTurn(digit, ws) {
     if (ws.activeTurn === "DTMF") return; // Prevent double-triggering
@@ -266,6 +209,8 @@ function startDtmfTurn(digit, ws) {
     ws.dfcxStream = stream;
 
     stream.on("data", (data) => {
+        if (ws.dfcxStream !== stream) return;
+
         const response = data.detectIntentResponse;
         if (response) {
             if (response.queryResult?.intent) {
@@ -276,7 +221,7 @@ function startDtmfTurn(digit, ws) {
                 sendAudioToTwilio(response.outputAudio, ws);
             }
 
-            // 🔓 IMPORTANT: Only unlock the turn after DFCX has responded
+            // Only unlock the turn after DFCX has responded
             setTimeout(() => {
                 if (ws.activeTurn === "DTMF") {
                     ws.activeTurn = null;
@@ -286,10 +231,15 @@ function startDtmfTurn(digit, ws) {
         }
     });
 
+    stream.on("error", (err) => {
+        console.error(`❌ [${ws.callSid}] DFCX_DTMF_STREAM_ERROR:`, err);
+        if (ws.dfcxStream === stream) closeTurn(ws);
+    });
+
     stream.write({
         session: createSessionPath(ws.callSid),
         queryInput: {
-            text: { text: String(digit) },
+            dtmf: { digits: String(digit) },
             languageCode: ws.customData.language
         },
         queryParams: {
